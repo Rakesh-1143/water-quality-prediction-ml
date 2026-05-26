@@ -22,6 +22,10 @@ The system allows users to enter water parameters through a clean Streamlit inte
 
 **GitHub Repository:** https://github.com/hassan-ali786/water-quality-prediction-ml
 
+**Video Demo:**
+
+<video src="https://github.com/user-attachments/assets/f27c891d-3cc5-4558-a622-913d3e0d7797" width="100%" controls></video>
+
 ---
 
 ## Model Performance
