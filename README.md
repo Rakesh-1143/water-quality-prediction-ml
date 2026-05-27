@@ -347,4 +347,3 @@ For questions or issues, please open a GitHub Issue or reach out directly.
 
 ---
 
-**Last Updated:** May 2026
