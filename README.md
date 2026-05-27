@@ -333,7 +333,7 @@ Contributions are welcome! Please follow these steps:
 
 - **Author:** Hassan Ali
 - **GitHub:** [@hassan-ali786](https://github.com/hassan-ali786)
-- **Email:** [Your email here]
+- **Email:** [hassanalitech54@gmail.com]
 
 For questions or issues, please open a GitHub Issue or reach out directly.
 
