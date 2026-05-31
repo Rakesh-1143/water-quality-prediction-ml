@@ -18,7 +18,10 @@ The system allows users to enter water parameters through a clean Streamlit inte
 
 ## Live Application
 
-**Live Demo:** https://water-quality-prediction-ml-eykh9eeqjxvj3gpzxurkmz.streamlit.app
+## Live Demo:
+🚀 [Click here to view the Live Demo](https://water-quality-prediction-ml-eykh9eeqjxvj3gpzxurkmz.streamlit.app)
+
+**Live Demo:** 
 
 ---
 
