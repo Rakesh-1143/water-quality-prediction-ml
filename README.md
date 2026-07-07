@@ -312,12 +312,6 @@ Check the `notebooks/eda.ipynb` for detailed evaluation plots and analysis.
 
 ---
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
 ## Contributing
 
 Contributions are welcome! Please follow these steps:
@@ -344,6 +338,12 @@ For questions or issues, please open a GitHub Issue or reach out directly.
 - Dataset: [Kaggle Water Potability Dataset](https://www.kaggle.com/adityakadiwal/water-potability)
 - WHO Water Quality Standards
 - Scikit-learn, XGBoost, and Streamlit communities
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
