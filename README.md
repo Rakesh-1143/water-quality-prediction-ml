@@ -322,20 +322,20 @@ Contributions are welcome! Please follow these steps:
 
 ---
 
+## Acknowledgments
+
+- Dataset: [Kaggle Water Potability Dataset](https://www.kaggle.com/adityakadiwal/water-potability)
+- WHO Water Quality Standards
+- Scikit-learn, XGBoost, and Streamlit communities
+
+---
+
 ## Contact & Support
 
 - **Author:** Hassan Ali
 - **Email:** [hassanalitech54@gmail.com]
 
 For questions or issues, please open a GitHub Issue or reach out directly.
-
----
-
-## Acknowledgments
-
-- Dataset: [Kaggle Water Potability Dataset](https://www.kaggle.com/adityakadiwal/water-potability)
-- WHO Water Quality Standards
-- Scikit-learn, XGBoost, and Streamlit communities
 
 ---
 
