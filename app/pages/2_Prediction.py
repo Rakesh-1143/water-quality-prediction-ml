@@ -1,85 +1,48 @@
 import sys
-import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
-
-import pickle
+from pathlib import Path
+sys.path.insert(0,str(Path(__file__).resolve().parents[2]))
 import numpy as np
+import pandas as pd
 import streamlit as st
-from config import MODEL_PATH
+from config import ARTIFACT_DIR, FEATURES
+from wqi.inference import Predictor
+st.set_page_config(page_title='Prediction',page_icon='🔬',layout='wide')
+st.title('Water Potability Prediction')
 
-st.set_page_config(page_title="Prediction", page_icon="🔬", layout="wide")
-st.title("Water Quality Prediction")
-
-MODEL_DIR = os.path.dirname(MODEL_PATH)
-SCALER_PATH = os.path.join(MODEL_DIR, "scaler.pkl")
+@st.cache_resource
+def load_predictor(path, artifact_signature):
+    return Predictor(path)
 
 try:
-    with open(MODEL_PATH, "rb") as f:
-        model = pickle.load(f)
-    with open(SCALER_PATH, "rb") as f:
-        scaler = pickle.load(f)
+    # Include file signatures so retraining invalidates cached resources.
+    names=['metadata.json','preprocess.joblib','ann.keras','xgboost.json','combiner.joblib']
+    signature=tuple((ARTIFACT_DIR/n).stat().st_mtime_ns for n in names)
+    predictor=load_predictor(ARTIFACT_DIR,signature)
 except FileNotFoundError:
-    st.error("Model not found. Please run train_model.py first.")
+    st.info('Train the paper model first: python model/train_model.py --tune --full')
+    st.stop()
+except Exception as exc:
+    st.error(f'Cannot load the paper model: {exc}')
     st.stop()
 
-st.sidebar.header("Input Parameters")
-
-def user_input():
-    ph = st.sidebar.slider("pH", 0.0, 14.0, 7.0)
-    hardness = st.sidebar.slider("Hardness (mg/L)", 0.0, 500.0, 200.0)
-    solids = st.sidebar.slider("Solids (ppm)", 0.0, 50000.0, 20000.0)
-    chloramines = st.sidebar.slider("Chloramines (ppm)", 0.0, 15.0, 7.0)
-    sulfate = st.sidebar.slider("Sulfate (mg/L)", 0.0, 500.0, 300.0)
-    conductivity = st.sidebar.slider("Conductivity (μS/cm)", 0.0, 1000.0, 500.0)
-    organic_carbon = st.sidebar.slider("Organic Carbon (ppm)", 0.0, 30.0, 15.0)
-    trihalomethanes = st.sidebar.slider("Trihalomethanes (μg/L)", 0.0, 150.0, 80.0)
-    turbidity = st.sidebar.slider("Turbidity (NTU)", 0.0, 10.0, 4.0)
-
-    ph_hardness = ph * hardness
-    solids_conductivity = solids / (conductivity + 1)
-    chloramines_trihalomethanes = chloramines * trihalomethanes
-
-    return np.array([[ph, hardness, solids, chloramines, sulfate,
-                      conductivity, organic_carbon, trihalomethanes,
-                      turbidity, ph_hardness, solids_conductivity,
-                      chloramines_trihalomethanes]])
-
-with st.expander("What do these parameters mean?"):
-    st.write("""
-    - **pH**: Acidity level (WHO safe range: 6.5–8.5)
-    - **Hardness**: Calcium/magnesium content (mg/L)
-    - **Solids**: Total dissolved solids (ppm)
-    - **Chloramines**: Disinfectant level (ppm)
-    - **Sulfate**: Naturally occurring mineral (mg/L)
-    - **Conductivity**: Electrical conductivity (μS/cm)
-    - **Organic Carbon**: Carbon from organic matter (ppm)
-    - **Trihalomethanes**: Chlorination byproduct (μg/L)
-    - **Turbidity**: Water cloudiness (NTU)
-    """)
-
-input_data = user_input()
-input_scaled = scaler.transform(input_data)
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.subheader("Input Values")
-    labels = ["pH", "Hardness", "Solids", "Chloramines", "Sulfate",
-              "Conductivity", "Organic Carbon", "Trihalomethanes", "Turbidity"]
-    for label, val in zip(labels, input_data[0][:9]):
-        st.write(f"**{label}:** {round(val, 3)}")
-
-with col2:
-    st.subheader("Prediction Result")
-    if st.button("Predict", use_container_width=True):
-        prediction = model.predict(input_scaled)
-        proba = model.predict_proba(input_scaled)[0]
-        confidence = round(max(proba) * 100, 2)
-
-        if prediction[0] == 1:
-            st.success("Water is Safe for Drinking")
-        else:
-            st.error("Water is NOT Safe for Drinking")
-
-        st.info(f"Model Confidence: {confidence}%")
-        st.progress(confidence / 100)
+specs=[('pH',0.,14.,7.),('Hardness (mg/L)',0.,500.,200.),
+    ('Solids (ppm)',0.,70000.,20000.),('Chloramines (ppm)',0.,15.,7.),
+    ('Sulfate (mg/L)',0.,500.,300.),('Conductivity (μS/cm)',0.,1000.,500.),
+    ('Organic Carbon (ppm)',0.,30.,15.),('Trihalomethanes (μg/L)',0.,150.,80.),
+    ('Turbidity (NTU)',0.,10.,4.)]
+with st.form('prediction'):
+    cols=st.columns(3); values=[]
+    for i,(label,low,high,default) in enumerate(specs):
+        values.append(cols[i%3].number_input(label,min_value=low,max_value=high,value=default))
+    submitted=st.form_submit_button('Predict',use_container_width=True)
+if submitted:
+    frame=pd.DataFrame([values],columns=FEATURES)
+    scaler=predictor.preprocess.named_steps['scaler']
+    out=(np.array(values)<scaler.data_min_)|(np.array(values)>scaler.data_max_)
+    if out.any(): st.warning('Some inputs fall outside training ranges: '+', '.join(np.array(FEATURES)[out]))
+    result,pn,px=predictor.predict(frame); p=float(result[0])
+    st.subheader('Predicted class: '+('Potable' if p>=.5 else 'Nonpotable'))
+    st.metric('Model probability of potable class',f'{p:.1%}')
+    st.write({'SHAP-initialized ANN probability':float(pn[0]),'XGBoost probability':float(px[0])})
+    st.caption('Probability is a model output; calibration and actual safety are not established.')
+st.warning('Use laboratory testing and applicable standards to determine drinking-water safety.')
