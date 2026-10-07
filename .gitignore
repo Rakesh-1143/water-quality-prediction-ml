@@ -28,3 +28,7 @@ Thumbs.db
 
 # Logs
 *.log
+# Generated paper models and measured reports
+model/paper/
+reports/
+.venv/
