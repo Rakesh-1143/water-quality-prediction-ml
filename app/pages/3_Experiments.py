@@ -5,14 +5,17 @@ import json
 import pandas as pd
 import streamlit as st
 from config import REPORT_DIR
+from wqi.ui import experiment_paths
 st.set_page_config(page_title='Experiments',layout='wide')
 st.title('Measured Experiments')
+_, REPORT_DIR = experiment_paths()
 if not (REPORT_DIR/'evaluation.json').exists():
     st.info('Run python model/train_model.py --full to generate experiment reports.')
     st.stop()
 report=json.loads((REPORT_DIR/'evaluation.json').read_text())
 st.write('Split sizes:',report['split_sizes'])
 st.write('Fusion selected using validation:',report['selected_fusion'])
+st.write('Feature initialization:', report.get('initialization', 'repeat'))
 st.dataframe(pd.DataFrame(report['test']).T)
 st.caption('Scores above come from this run. Reference paper: accuracy 0.869, F1 0.849, ROC-AUC 0.894. '
            'Equal results are not guaranteed.')

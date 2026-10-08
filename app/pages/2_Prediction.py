@@ -6,8 +6,10 @@ import pandas as pd
 import streamlit as st
 from config import ARTIFACT_DIR, FEATURES
 from wqi.inference import Predictor
+from wqi.ui import experiment_paths
 st.set_page_config(page_title='Prediction',page_icon='🔬',layout='wide')
 st.title('Water Potability Prediction')
+ARTIFACT_DIR, _ = experiment_paths()
 
 @st.cache_resource
 def load_predictor(path, artifact_signature):
@@ -19,7 +21,7 @@ try:
     signature=tuple((ARTIFACT_DIR/n).stat().st_mtime_ns for n in names)
     predictor=load_predictor(ARTIFACT_DIR,signature)
 except FileNotFoundError:
-    st.info('Train the paper model first: python model/train_model.py --full')
+    st.info('Train the selected model first. See README for the two training commands.')
     st.stop()
 except Exception as exc:
     st.error(f'Cannot load the paper model: {exc}')
@@ -46,3 +48,20 @@ if submitted:
     st.write({'SHAP-initialized ANN probability':float(pn[0]),'XGBoost probability':float(px[0])})
     st.caption('Probability is a model output; calibration and actual safety are not established.')
 st.warning('Use laboratory testing and applicable standards to determine drinking-water safety.')
+st.subheader('Predict a CSV of measurements')
+st.write('Upload the nine measurement columns; a Potability label is not required. '
+         'Blank measurements use the training medians.')
+template = pd.DataFrame([item[3] for item in specs], index=FEATURES).T
+st.download_button('Download CSV template', template.to_csv(index=False),
+                   file_name='measurement-template.csv', mime='text/csv')
+uploaded = st.file_uploader('Measurement CSV', type=['csv'])
+if uploaded is not None:
+    try:
+        measurements = pd.read_csv(uploaded)
+        output = predictor.predict_frame(measurements)
+        output.insert(0, 'row_number', range(1, len(output) + 1))
+        st.dataframe(output, use_container_width=True)
+        st.download_button('Download predictions', output.to_csv(index=False, float_format='%.17g'),
+                           file_name='potability-predictions.csv', mime='text/csv')
+    except (ValueError, KeyError) as exc:
+        st.error(f'Cannot predict this CSV: {exc}')
