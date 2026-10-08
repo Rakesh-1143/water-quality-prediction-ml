@@ -7,6 +7,7 @@ from pathlib import Path
 from config import FEATURES
 from wqi.core import average
 from wqi.neural import probability
+from wqi.validation import probabilities
 
 
 class Predictor:
@@ -34,19 +35,19 @@ class Predictor:
             raise ValueError('Measurement column names must be unique')
         if not set(FEATURES).issubset(frame.columns):
             raise ValueError('All nine features are required')
-        values = frame[FEATURES].apply(pd.to_numeric, errors='raise')
+        values = frame[FEATURES].apply(pd.to_numeric, errors='raise').astype('float64')
         # Missing measurements use the training medians, as in the paper's
         # preprocessing pipeline. Infinite values remain invalid.
         if np.isinf(values.to_numpy()).any():
             raise ValueError('Prediction inputs must not contain infinite numbers')
         scaled = self.preprocess.transform(values)
         pn = probability(self.nn, scaled)
-        px = self.xgb.predict_proba(scaled)[:, 1]
+        px = probabilities(self.xgb.predict_proba(scaled)[:, 1])
         if self.metadata['fusion'] == 'stacking':
             result = self.combiner.predict_proba(np.column_stack([pn, px]))[:, 1]
         else:
             result = average(pn, px, self.metadata['alpha'])
-        return result, pn, px
+        return probabilities(result), pn, px
 
     def predict_frame(self, frame, batch_size=512):
         """CSV-ready predictions in original row order using bounded batches."""
@@ -58,7 +59,7 @@ class Predictor:
         for start in range(0, len(frame), batch_size):
             part = frame.iloc[start:start + batch_size]
             p, pn, px = self.predict(part)
-            values = part[FEATURES].apply(pd.to_numeric, errors='raise')
+            values = part[FEATURES].apply(pd.to_numeric, errors='raise').astype('float64')
             scaler = self.preprocess.named_steps['scaler']
             outside = (values.to_numpy() < scaler.data_min_) | (values.to_numpy() > scaler.data_max_)
             chunks.append(pd.DataFrame({

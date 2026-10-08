@@ -9,10 +9,11 @@ from sklearn.metrics import (accuracy_score, precision_score, recall_score,
     f1_score, roc_auc_score, mean_squared_error, mean_absolute_error,
     r2_score, confusion_matrix)
 from config import FEATURES
+from wqi.validation import read_csv
 
 
 def load_data(path):
-    df = pd.read_csv(path)
+    df = read_csv(path)
     missing = set(FEATURES + ['Potability']) - set(df.columns)
     if missing:
         raise ValueError(f'Missing columns: {sorted(missing)}')

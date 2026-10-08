@@ -5,6 +5,7 @@ os.environ.setdefault('TF_NUM_INTRAOP_THREADS', '2')
 os.environ.setdefault('TF_NUM_INTEROP_THREADS', '1')
 from config import LEARNING_RATE, BATCH_SIZE, PATIENCE
 from wqi.core import input_kernel
+from wqi.validation import model_inputs, probabilities
 
 
 def build_ann(weights=None, seed=42, learning_rate=LEARNING_RATE, dropout=.2,
@@ -42,9 +43,9 @@ def fit_ann(model, X, y, Xval, yval, epochs=100, seed=42):
     options = tf.data.Options()
     options.threading.private_threadpool_size = 1
     options.threading.max_intra_op_parallelism = 1
-    train = tf.data.Dataset.from_tensor_slices((np.asarray(X, dtype=np.float32),
+    train = tf.data.Dataset.from_tensor_slices((model_inputs(X),
         np.asarray(y, dtype=np.float32))).shuffle(len(X), seed=seed).batch(BATCH_SIZE)
-    val = tf.data.Dataset.from_tensor_slices((np.asarray(Xval, dtype=np.float32),
+    val = tf.data.Dataset.from_tensor_slices((model_inputs(Xval),
         np.asarray(yval, dtype=np.float32))).batch(BATCH_SIZE)
     history = model.fit(train.with_options(options),
         validation_data=val.with_options(options), epochs=epochs, verbose=0, shuffle=False,
@@ -55,4 +56,4 @@ def fit_ann(model, X, y, Xval, yval, epochs=100, seed=42):
 
 def probability(model, X):
     # Direct inference avoids a new tf.data prediction thread pool on every call.
-    return np.asarray(model(np.asarray(X, dtype=np.float32), training=False)).reshape(-1)
+    return probabilities(np.asarray(model(model_inputs(X), training=False)).reshape(-1))
