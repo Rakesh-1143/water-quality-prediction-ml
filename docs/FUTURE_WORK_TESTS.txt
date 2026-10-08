@@ -1,0 +1,27 @@
+test_home_and_eda_render (test_app.AppIntegration.test_home_and_eda_render) ... 2026-10-08 13:46:30.954 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-08 13:46:31.807 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-08 13:46:33.491 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_prediction_and_experiment_pages (test_app.AppIntegration.test_prediction_and_experiment_pages) ... 2026-10-08 13:46:33.768 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-08 13:46:35.300 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_dataset_and_disjoint_stratified_splits (test_core.CoreTests.test_dataset_and_disjoint_stratified_splits) ... ok
+test_fusion_and_probability_metrics (test_core.CoreTests.test_fusion_and_probability_metrics) ... ok
+test_shap_weight_matrix (test_core.CoreTests.test_shap_weight_matrix) ... ok
+test_train_only_median_and_scaling (test_core.CoreTests.test_train_only_median_and_scaling) ... ok
+test_chronological_lstm_windows_and_forecast_reload (test_future_work.FutureWorkIntegration.test_chronological_lstm_windows_and_forecast_reload) ... ok
+test_dann_unlabeled_adaptation_and_heldout_target (test_future_work.FutureWorkIntegration.test_dann_unlabeled_adaptation_and_heldout_target) ... ok
+test_gradient_reversal_and_serialization (test_future_work.FutureWorkIntegration.test_gradient_reversal_and_serialization) ... ok
+test_multiclass_training_and_saved_hybrid_reload (test_future_work.FutureWorkIntegration.test_multiclass_training_and_saved_hybrid_reload) ... ok
+test_real_data_requirements_and_overlap_rejection (test_future_work.FutureWorkIntegration.test_real_data_requirements_and_overlap_rejection) ... ok
+test_transfer_frozen_preprocessing_and_reload (test_future_work.FutureWorkIntegration.test_transfer_frozen_preprocessing_and_reload) ... WARNING:tensorflow:5 out of the last 12 calls to <function TensorFlowTrainer._make_function.<locals>.multi_step_on_iterator at 0x7f7ce35daf20> triggered tf.function retracing. Tracing is expensive and the excessive number of tracings could be due to (1) creating @tf.function repeatedly in a loop, (2) passing tensors with different shapes, (3) passing Python objects instead of tensors. For (1), please define your @tf.function outside of the loop. For (2), @tf.function has reduce_retracing=True option that can avoid unnecessary retracing. For (3), please refer to https://www.tensorflow.org/guide/function#controlling_retracing and https://www.tensorflow.org/api_docs/python/tf/function for  more details.
+WARNING:tensorflow:5 out of the last 11 calls to <function TensorFlowTrainer._make_function.<locals>.multi_step_on_iterator at 0x7f7ce49b2de0> triggered tf.function retracing. Tracing is expensive and the excessive number of tracings could be due to (1) creating @tf.function repeatedly in a loop, (2) passing tensors with different shapes, (3) passing Python objects instead of tensors. For (1), please define your @tf.function outside of the loop. For (2), @tf.function has reduce_retracing=True option that can avoid unnecessary retracing. For (3), please refer to https://www.tensorflow.org/guide/function#controlling_retracing and https://www.tensorflow.org/api_docs/python/tf/function for  more details.
+ok
+test_entire_training_artifact_inference_roundtrip (test_neural.NeuralIntegration.test_entire_training_artifact_inference_roundtrip) ... ok
+test_feature_weighted_glorot_is_seeded_and_not_repeated (test_neural.NeuralIntegration.test_feature_weighted_glorot_is_seeded_and_not_repeated) ... ok
+test_initialization_training_and_reload_predictions (test_neural.NeuralIntegration.test_initialization_training_and_reload_predictions) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 20.282s
+
+OK
