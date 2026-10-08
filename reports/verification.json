@@ -17,6 +17,7 @@
     "validation": 491,
     "test": 492
   },
+  "initialization": "repeat",
   "dataset_sha256": "111a9ba65f2d791003ac07b54b8e18e2f7e0bc1cfa37cfdb251d3758a4e8c24c",
   "max_saved_reload_probability_error": 2.960052492007037e-08,
   "versions": {
