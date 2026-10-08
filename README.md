@@ -115,3 +115,7 @@ Dataset by Aditya Kadiwal:
 https://www.kaggle.com/datasets/adityakadiwal/water-potability
 
 Original MIT copyright notice is retained in [LICENSE](LICENSE).
+
+## Deep review
+
+The 8 October 2026 review fixes numeric overflow/invalid output handling, duplicate CSV headers, single-class DANN evaluation and EDA figure cleanup. All 19 tests pass. See [the full review and limits](docs/DEEP_REVIEW.md) and [test evidence](docs/DEEP_REVIEW_TESTS.txt). This does not establish 100% paper equivalence or real-data validation of future work.
