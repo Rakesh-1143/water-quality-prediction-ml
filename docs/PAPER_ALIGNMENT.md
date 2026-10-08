@@ -76,6 +76,13 @@ This implements the described components with documented interpretations;
 it does not establish “100% exact reproduction”. Run the complete suite and
 review measured evidence before claiming reproducibility or performance.
 
+The suite was executed on 2026-10-08 with published Table VIII settings.
+See [validation evidence](VALIDATION.md): the hybrid achieved 66.06% holdout
+accuracy, so the paper's numerical results were not reproduced. The validated
+snapshot includes model artifacts, raw predictions, ablations, perturbations,
+five split repetitions and final-model SHAP. ANN shuffle uses each run's seed;
+batch inference imputes missing observations with training-fitted medians.
+
 Official implementation references:
 * https://shap.readthedocs.io/en/latest/generated/shap.TreeExplainer.html
 * https://www.tensorflow.org/api_docs/python/tf/keras/callbacks/EarlyStopping
