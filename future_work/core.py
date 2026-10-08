@@ -13,20 +13,21 @@ from config import FEATURES
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, log_loss
 from wqi.core import preprocessor
+from wqi.validation import model_inputs, probabilities
 
 
 def features(frame):
     if frame.empty or not frame.columns.is_unique or not set(FEATURES).issubset(frame.columns):
         raise ValueError('Provide nonempty rows with all nine unique feature columns')
-    X = frame[FEATURES].apply(pd.to_numeric, errors='raise')
+    X = frame[FEATURES].apply(pd.to_numeric, errors='raise').astype('float64')
     if np.isinf(X.to_numpy()).any():
         raise ValueError('Infinite measurements are invalid')
     return X
 
 
-def labeled(frame, label='Potability', multiclass=False):
+def labeled(frame, label='Potability', multiclass=False, evaluation=False):
     X = features(frame)
-    if X.isna().all().any():
+    if not evaluation and X.isna().all().any():
         raise ValueError('Every training feature needs observed values')
     if label not in frame or frame[label].isna().any():
         raise ValueError(f'Complete {label} labels are required')
@@ -39,11 +40,11 @@ def labeled(frame, label='Potability', multiclass=False):
         classes = encoder.classes_.tolist()
     else:
         y = pd.to_numeric(frame[label], errors='raise').to_numpy()
-        if set(np.unique(y)) != {0, 1}:
+        if not set(np.unique(y)).issubset({0, 1}) or (not evaluation and set(np.unique(y)) != {0, 1}):
             raise ValueError('Potability must contain both binary classes 0 and 1')
         y = y.astype(int)
         classes = ['Nonpotable', 'Potable']
-    if pd.Series(y).value_counts().min() < 8:
+    if not evaluation and pd.Series(y).value_counts().min() < 8:
         raise ValueError('At least eight observations per class are needed for stratified partitions')
     return X, y, classes
 
@@ -62,7 +63,7 @@ def seed_all(seed):
 
 
 def dataset(X, y, seed=42, shuffle=False):
-    ds = tf.data.Dataset.from_tensor_slices((np.asarray(X, dtype='float32'), y))
+    ds = tf.data.Dataset.from_tensor_slices((model_inputs(X), y))
     if shuffle:
         ds = ds.shuffle(len(X), seed=seed)
     options = tf.data.Options()
@@ -89,14 +90,14 @@ def scores(y, probabilities, classes):
     p = p / p.sum(axis=1, keepdims=True)  # float32 model export roundoff
     pred = p.argmax(axis=1)
     return {'accuracy': float(accuracy_score(y, pred)),
-        'macro_f1': float(f1_score(y, pred, average='macro', zero_division=0)),
+        'macro_f1': float(f1_score(y, pred, average='macro', labels=np.arange(len(classes)), zero_division=0)),
         'log_loss': float(log_loss(y, p, labels=np.arange(len(classes)))),
         'confusion_matrix': confusion_matrix(y, pred, labels=np.arange(len(classes))).tolist()}
 
 
 def binary_prob(model, X):
-    p = np.asarray(model(np.asarray(X, dtype='float32'), training=False)).reshape(-1)
-    return np.column_stack([1-p, p])
+    p = np.asarray(model(model_inputs(X), training=False)).reshape(-1)
+    return probabilities(np.column_stack([1-p, p]))
 
 
 def fingerprint(frame):
@@ -147,7 +148,7 @@ class FuturePredictor:
 
     def predict(self, frame):
         X = features(frame)
-        scaled = self.prep.transform(X)
+        scaled = model_inputs(self.prep.transform(X))
         if self.meta['kind'] == 'timeseries':
             length = self.meta['lookback']
             validate_time(frame, self.meta['timestamp'], self.meta['interval_ns'])
@@ -156,6 +157,8 @@ class FuturePredictor:
             # One future forecast from the last history window; no future rows required.
             raw = float(self.model(scaled[-length:][None].astype('float32'), training=False).numpy()[0,0])
             value = raw * self.meta['target_std'] + self.meta['target_mean']
+            if not np.isfinite(value):
+                raise ValueError('Model returned a nonfinite WQI forecast')
             stamp = pd.to_datetime(frame[self.meta['timestamp']], utc=True).iloc[-1]
             stamp += pd.Timedelta(self.meta['interval_ns'] * self.meta['horizon'], unit='ns')
             return pd.DataFrame({'forecast_timestamp': [stamp.isoformat()], 'predicted_WQI': [value]})
@@ -164,6 +167,9 @@ class FuturePredictor:
             p = self.meta['alpha'] * pn + (1-self.meta['alpha']) * self.xgb.predict_proba(scaled)
         else:
             p = binary_prob(self.model, scaled)
+        p = probabilities(p)
+        if not np.allclose(p.sum(axis=1), 1, atol=1e-5):
+            raise ValueError('Class probabilities must sum to one')
         out = pd.DataFrame({f'probability_{c}': p[:,i] for i,c in enumerate(self.meta['classes'])})
         out.insert(0, 'predicted_class', np.array(self.meta['classes'])[p.argmax(axis=1)])
         return out

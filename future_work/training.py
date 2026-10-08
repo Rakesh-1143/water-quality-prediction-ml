@@ -11,6 +11,7 @@ from xgboost import XGBClassifier
 import shap
 from config import FEATURES, XGB_PARAMS
 from wqi.core import shap_importance, preprocessor
+from wqi.validation import model_inputs
 from .core import (features, labeled, partitions, seed_all, fit, scores, binary_prob,
                    fingerprint, reject_overlap, save, validate_time, training_preprocessor)
 
@@ -20,7 +21,7 @@ def multiclass(frame, output, label='WQI_class', epochs=100, seed=42):
     X, y, classes = labeled(frame, label, True)
     tr, va, te = partitions(y, seed)
     prep = training_preprocessor(X.iloc[tr])
-    a,b,c = [prep.transform(X.iloc[z]) for z in [tr,va,te]]
+    a,b,c = [model_inputs(prep.transform(X.iloc[z])) for z in [tr,va,te]]
     params = {**XGB_PARAMS, 'objective': 'multi:softprob', 'eval_metric': 'mlogloss',
               'num_class': len(classes), 'random_state': seed}
     tree = XGBClassifier(**params).fit(a, y[tr])
@@ -73,7 +74,7 @@ def timeseries(frame, output, label='WQI', timestamp='timestamp', lookback=12,
         raise ValueError('Each chronological partition needs enough rows for at least four windows')
     if X.iloc[:stop].isna().all().any():
         raise ValueError('Training partition has an unobserved feature')
-    prep = training_preprocessor(X.iloc[:stop]); scaled = prep.transform(X)
+    prep = training_preprocessor(X.iloc[:stop]); scaled = model_inputs(prep.transform(X))
     mean = float(y[:stop].mean()); std = float(y[:stop].std())
     if std <= 0:
         raise ValueError('Training WQI targets must vary')
@@ -119,7 +120,7 @@ def transfer(frame, source, output, epochs=100, seed=42):
     tr,va,te=partitions(y,seed)
     # Keep the source preprocessing coordinate system unchanged during transfer.
     prep=joblib.load(source/'preprocess.joblib')
-    a,b,c=[prep.transform(X.iloc[z]) for z in [tr,va,te]]
+    a,b,c=[model_inputs(prep.transform(X.iloc[z])) for z in [tr,va,te]]
     model=tf.keras.models.load_model(source/'ann.keras',compile=False)
     if model.input_shape != (None,9) or model.output_shape != (None,1):
         raise ValueError('Source model must be the compatible binary ANN')
@@ -171,11 +172,11 @@ def dann(source, target_adapt, output, target_test=None, epochs=100, seed=42, st
     reject_overlap(source,target_adapt)
     if target_test is not None:
         reject_overlap(target_adapt,target_test); reject_overlap(source,target_test)
-        E,ey,_=labeled(target_test)
+        E,ey,_=labeled(target_test, evaluation=True)
     tr,va,te=partitions(y,seed)
     prep=training_preprocessor(X.iloc[tr])
-    a,b,c=[prep.transform(X.iloc[z]).astype('float32') for z in [tr,va,te]]
-    t=prep.transform(T).astype('float32')
+    a,b,c=[model_inputs(prep.transform(X.iloc[z])) for z in [tr,va,te]]
+    t=model_inputs(prep.transform(T))
     inputs=tf.keras.Input((9,)); shared=tf.keras.layers.Dense(32,activation='relu')(inputs)
     shared=tf.keras.layers.Dense(16,activation='relu')(shared)
     label=tf.keras.layers.Dense(1,activation='sigmoid',name='label')(shared)
