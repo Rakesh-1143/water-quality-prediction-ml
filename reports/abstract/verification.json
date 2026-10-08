@@ -1,0 +1,42 @@
+{
+  "status": "passed",
+  "checked_test_rows": 492,
+  "checked_models": [
+    "random_forest",
+    "svr",
+    "ann_xavier",
+    "xgboost",
+    "ann_shap",
+    "hybrid_average_0.5",
+    "hybrid_stacking",
+    "hybrid_xavier_stacking",
+    "hybrid_selected"
+  ],
+  "split_sizes": {
+    "train": 2293,
+    "validation": 491,
+    "test": 492
+  },
+  "initialization": "feature_glorot",
+  "dataset_sha256": "111a9ba65f2d791003ac07b54b8e18e2f7e0bc1cfa37cfdb251d3758a4e8c24c",
+  "max_saved_reload_probability_error": 1.1102230246251565e-16,
+  "versions": {
+    "tensorflow-cpu": "2.18.0",
+    "xgboost": "2.1.3",
+    "shap": "0.46.0",
+    "scikit-learn": "1.5.2",
+    "numpy": "1.26.4",
+    "pandas": "2.2.3"
+  },
+  "metric_tolerance": 1e-07,
+  "sha256": {
+    "ann.keras": "2a5e7809962db37e2eb1d0e818e624e9d6de5425b848cf8df6ed942d215cc3bc",
+    "combiner.joblib": "f153875461192a7c66a36853f4d592d3d0dc1d7714e89fa844e73da337d01ce8",
+    "metadata.json": "03ab050dd6199f8f1fc19642d2607cf8fdde9838eb0bd30025f586c3a00c835c",
+    "preprocess.joblib": "1518e2bfc4e8dce28ae44225a207a4b742bc6cb8b2cf6597ea57f657d47d58ea",
+    "xgboost.json": "21f01903cb3234bc78d7585cc4ea5a069e5ecfbf3a57e6d20f3caba2895cc1bb"
+  },
+  "limitations": [
+    "Verification does not establish equality to the authors results."
+  ]
+}
