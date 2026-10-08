@@ -14,6 +14,6 @@ if (ARTIFACT_DIR/'metadata.json').exists():
     st.metric('Measured holdout accuracy',f"{metadata['test_metrics']['accuracy']:.1%}")
     st.write('Selected fusion:',metadata['fusion'])
 else:
-    st.info('Paper model has not been trained. Run: python model/train_model.py --tune --full')
+    st.info('Paper model has not been trained. Run: python model/train_model.py --full')
 st.warning('This educational classifier does not certify drinking-water safety. '
            'The paper’s reported accuracy is a reference result, not a measurement of this implementation.')
