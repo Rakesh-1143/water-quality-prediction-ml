@@ -18,7 +18,7 @@ from sklearn.model_selection import ParameterGrid, train_test_split
 from xgboost import XGBClassifier, XGBRegressor
 import shap
 from config import (DATA_PATH, ARTIFACT_DIR, REPORT_DIR, FEATURES,
-                    RANDOM_STATE, EPOCHS, XGB_PARAMS)
+                    RANDOM_STATE, EPOCHS, XGB_PARAMS, ABSTRACT_ARTIFACT_DIR, ABSTRACT_REPORT_DIR)
 from wqi.core import (load_data, split_data, preprocessor, shap_importance,
                       average, metrics, dataset_profile)
 from wqi.neural import build_ann, fit_ann, probability
@@ -28,7 +28,7 @@ def dump(path, value):
     path.write_text(json.dumps(value, indent=2, default=lambda x:x.item(), allow_nan=False))
 
 
-def fit_experiment(X, y, seed, epochs, tune=False):
+def fit_experiment(X, y, seed, epochs, tune=False, initialization='repeat'):
     import tensorflow as tf
     tf.keras.backend.clear_session()
     Xtr, Xv, Xt, ytr, yv, yt = split_data(X, y, seed)
@@ -60,7 +60,7 @@ def fit_experiment(X, y, seed, epochs, tune=False):
             tuning['xgboost'].append({'params':candidate, 'accuracy':score})
         params.update(max(tuning['xgboost'], key=lambda z:z['accuracy'])['params'])
         for candidate in ParameterGrid({'learning_rate':[.0005,.001], 'dropout':[.1,.2]}):
-            m = build_ann(inner_weights, seed, **candidate)
+            m = build_ann(inner_weights, seed, initialization=initialization, **candidate)
             fit_ann(m, itr, ytr.iloc[ia], iva, ytr.iloc[ib], epochs, seed=seed)
             score = metrics(ytr.iloc[ib], probability(m, iva))['accuracy']
             tuning['ann'].append({'params':candidate, 'accuracy':score})
@@ -68,7 +68,7 @@ def fit_experiment(X, y, seed, epochs, tune=False):
     xgb = XGBClassifier(**params, random_state=seed).fit(tr, ytr)
     rf = RandomForestClassifier(n_estimators=100, random_state=seed, n_jobs=2).fit(tr,ytr)
     svr = SVR(kernel='rbf').fit(tr,ytr)
-    ann = build_ann(weights, seed, **ann_params)
+    ann = build_ann(weights, seed, initialization=initialization, **ann_params)
     history = fit_ann(ann, tr, ytr, va, yv, epochs, seed=seed)
     standard = build_ann(None, seed, **ann_params)
     standard_history = fit_ann(standard, tr, ytr, va, yv, epochs, seed=seed)
@@ -93,7 +93,8 @@ def fit_experiment(X, y, seed, epochs, tune=False):
             'hybrid_selected':average(n,b,alpha) if selected.startswith('average_') else
                 combiner.predict_proba(np.column_stack([n,b]))[:,1]}
     predictions = predict_all(te)
-    result = dict(seed=seed, split_sizes={'train':len(ytr),'validation':len(yv),'test':len(yt)},
+    result = dict(seed=seed, initialization=initialization,
+        split_sizes={'train':len(ytr),'validation':len(yv),'test':len(yt)},
         split_indices={'train':Xtr.index.tolist(),'validation':Xv.index.tolist(),'test':Xt.index.tolist()},
         selected_fusion=selected, alpha=alpha,
         test={n:metrics(yt,p) for n,p in predictions.items()},
@@ -138,15 +139,20 @@ def main():
     parser.add_argument('--seed',type=int,default=RANDOM_STATE)
     parser.add_argument('--tune',action='store_true',help='Run explicit inner-training grids')
     parser.add_argument('--full',action='store_true',help='Add five-seed sensitivity and final-model SHAP')
-    parser.add_argument('--output',type=Path,default=ARTIFACT_DIR)
-    parser.add_argument('--reports',type=Path,default=REPORT_DIR)
+    parser.add_argument('--initialization', choices=['repeat', 'feature_glorot'], default='repeat',
+                        help='Paper vector expansion or abstract feature-weighted random initialization')
+    parser.add_argument('--output',type=Path)
+    parser.add_argument('--reports',type=Path)
     args=parser.parse_args()
+    abstract = args.initialization == 'feature_glorot'
+    args.output = args.output or (ABSTRACT_ARTIFACT_DIR if abstract else ARTIFACT_DIR)
+    args.reports = args.reports or (ABSTRACT_REPORT_DIR if abstract else REPORT_DIR)
     if args.epochs < 1: parser.error('--epochs must be positive')
     args.output.mkdir(parents=True,exist_ok=True); args.reports.mkdir(parents=True,exist_ok=True)
     X,y=load_data(DATA_PATH)
     dump(args.reports/'dataset_profile.json',dataset_profile(X,y))
     print('Training SHAP ANN, baselines, and both hybrid variants...',flush=True)
-    run=fit_experiment(X,y,args.seed,args.epochs,args.tune)
+    run=fit_experiment(X,y,args.seed,args.epochs,args.tune,args.initialization)
     dump(args.reports/'evaluation.json',run['result'])
     pd.DataFrame(run['result']['test']).T.to_csv(args.reports/'metrics.csv')
     # Ablations isolate both initialization and hybridization.
@@ -175,6 +181,7 @@ def main():
     dump(args.output/'metadata.json',dict(schema=1,features=FEATURES,
         fusion='stacking' if run['result']['selected_fusion']=='stacking' else 'average',
         alpha=run['result']['alpha'],seed=args.seed,epochs_limit=args.epochs,
+        initialization=args.initialization,
         dataset_sha256=hashlib.sha256(DATA_PATH.read_bytes()).hexdigest(),versions=versions,
         test_metrics=run['result']['test']['hybrid_selected'],
         initialization_weights=run['result']['initialization_weights']))
@@ -183,7 +190,7 @@ def main():
         seeds=list(range(args.seed,args.seed+5)); scores=[]
         for seed in seeds:
             print(f'Sensitivity seed {seed}',flush=True)
-            repeat=run if seed==args.seed else fit_experiment(X,y,seed,args.epochs,args.tune)
+            repeat=run if seed==args.seed else fit_experiment(X,y,seed,args.epochs,args.tune,args.initialization)
             scores.append({'seed':seed,**repeat['result']['test']['hybrid_selected']})
         dump(args.reports/'split_sensitivity.json',{'runs':scores,
             'accuracy_std':float(np.std([s['accuracy'] for s in scores])),
@@ -208,7 +215,7 @@ def main():
             float(rank_correlation) if np.isfinite(rank_correlation) else None,
             'explained_test_rows':len(examples),'background_clusters':10})
     print(json.dumps(run['result']['test']['hybrid_selected'],indent=2),flush=True)
-    print('Saved paper artifacts and measured reports. Paper accuracy is not guaranteed.',flush=True)
+    print(f'Saved {args.initialization} artifacts to {args.output} and reports to {args.reports}.',flush=True)
 
 
 if __name__=='__main__': main()

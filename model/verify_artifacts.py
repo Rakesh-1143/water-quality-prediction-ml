@@ -19,6 +19,9 @@ def verify(output=ARTIFACT_DIR, reports=REPORT_DIR):
     X, y = load_data(DATA_PATH)
     splits = evaluation['split_indices']
     groups = [set(splits[name]) for name in ['train', 'validation', 'test']]
+    for name in ['train', 'validation', 'test']:
+        if len(set(splits[name])) != len(splits[name]) or len(splits[name]) != evaluation['split_sizes'][name]:
+            raise AssertionError('Duplicate row IDs or incorrect partition size')
     if any(groups[i] & groups[j] for i in range(3) for j in range(i + 1, 3)):
         raise AssertionError('Partitions overlap')
     if set.union(*groups) != set(X.index):
@@ -34,6 +37,13 @@ def verify(output=ARTIFACT_DIR, reports=REPORT_DIR):
             np.testing.assert_allclose(value, scores[key], rtol=1e-7, atol=1e-7,
                                        err_msg=f'{name}: {key}')
     predictor = Predictor(output)
+    if metadata.get('initialization', 'repeat') != evaluation.get('initialization', 'repeat'):
+        raise AssertionError('Snapshot initialization methods differ')
+    expected_fusion = 'stacking' if evaluation['selected_fusion'] == 'stacking' else 'average'
+    if metadata['fusion'] != expected_fusion or metadata['alpha'] != evaluation['alpha']:
+        raise AssertionError('Snapshot fusion settings differ')
+    for key, value in evaluation['test']['hybrid_selected'].items():
+        np.testing.assert_allclose(value, metadata['test_metrics'][key], rtol=1e-7, atol=1e-7)
     restored, _, _ = predictor.predict(X.loc[predictions.row_id])
     np.testing.assert_allclose(restored, predictions.hybrid_selected, atol=1e-6, rtol=1e-6)
     if metadata['dataset_sha256'] != hashlib.sha256(DATA_PATH.read_bytes()).hexdigest():
@@ -46,6 +56,7 @@ def verify(output=ARTIFACT_DIR, reports=REPORT_DIR):
         'status': 'passed', 'checked_test_rows': len(predictions),
         'checked_models': list(evaluation['test']),
         'split_sizes': evaluation['split_sizes'],
+        'initialization': metadata.get('initialization', 'repeat'),
         'dataset_sha256': metadata['dataset_sha256'],
         'max_saved_reload_probability_error': float(np.max(np.abs(
             restored - predictions.hybrid_selected.to_numpy()))),
