@@ -61,7 +61,7 @@ def fit_experiment(X, y, seed, epochs, tune=False):
         params.update(max(tuning['xgboost'], key=lambda z:z['accuracy'])['params'])
         for candidate in ParameterGrid({'learning_rate':[.0005,.001], 'dropout':[.1,.2]}):
             m = build_ann(inner_weights, seed, **candidate)
-            fit_ann(m, itr, ytr.iloc[ia], iva, ytr.iloc[ib], epochs)
+            fit_ann(m, itr, ytr.iloc[ia], iva, ytr.iloc[ib], epochs, seed=seed)
             score = metrics(ytr.iloc[ib], probability(m, iva))['accuracy']
             tuning['ann'].append({'params':candidate, 'accuracy':score})
         ann_params.update(max(tuning['ann'], key=lambda z:z['accuracy'])['params'])
@@ -69,9 +69,9 @@ def fit_experiment(X, y, seed, epochs, tune=False):
     rf = RandomForestClassifier(n_estimators=100, random_state=seed, n_jobs=2).fit(tr,ytr)
     svr = SVR(kernel='rbf').fit(tr,ytr)
     ann = build_ann(weights, seed, **ann_params)
-    history = fit_ann(ann, tr, ytr, va, yv, epochs)
+    history = fit_ann(ann, tr, ytr, va, yv, epochs, seed=seed)
     standard = build_ann(None, seed, **ann_params)
-    standard_history = fit_ann(standard, tr, ytr, va, yv, epochs)
+    standard_history = fit_ann(standard, tr, ytr, va, yv, epochs, seed=seed)
     pn, px = probability(ann, va), xgb.predict_proba(va)[:,1]
     ps = probability(standard, va)
     combiner = LogisticRegression(random_state=seed).fit(np.column_stack([pn,px]),yv)
@@ -164,7 +164,8 @@ def main():
     dump(args.reports/'feature_sensitivity.json',sensitivity)
     # Save predictions with original row IDs for independent verification.
     pd.DataFrame({'row_id':run['Xt'].index,'actual':run['yt'].to_numpy(),
-        **run['predictions']}).to_csv(args.reports/'test_predictions.csv',index=False)
+        **run['predictions']}).to_csv(args.reports/'test_predictions.csv',index=False,
+                                     float_format='%.17g')
     joblib.dump(run['prep'],args.output/'preprocess.joblib')
     joblib.dump(run['combiner'],args.output/'combiner.joblib')
     run['ann'].save(args.output/'ann.keras'); run['xgb'].save_model(args.output/'xgboost.json')
