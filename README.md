@@ -12,7 +12,7 @@ averaging or validation-trained logistic regression. Future work is excluded.
 ## Setup (Python 3.10–3.12)
 
 ```bash
-git clone https://github.com/Rakesh-1143/water-quality-prediction-ml.git
+git clone --branch paper-alignment https://github.com/Rakesh-1143/water-quality-prediction-ml.git
 cd water-quality-prediction-ml
 python -m venv venv
 # Linux/macOS:
@@ -27,7 +27,10 @@ python -m unittest discover -s tests -v
 ```bash
 # Table VIII parameters; baselines, fusion, ablations, perturbation and plots
 python model/train_model.py
-# Full suite adds tuning, five split repetitions, final-hybrid SHAP
+# Full suite using the paper's published Table VIII settings
+python model/train_model.py --full
+python model/verify_artifacts.py
+# Optional exploratory tuning; may select settings different from Table VIII
 python model/train_model.py --tune --full
 streamlit run app/app.py
 ```
@@ -39,6 +42,22 @@ execution only and is not evidence of paper accuracy.
 Generated models live in `model/paper/`; measured results in `reports/`.
 The prediction page requires all five matching new artifact files and never
 loads the original 12-feature pickles. Dataset EDA is available before training.
+
+`requirements-lock.txt` records the complete validated Python 3.12 Linux CPU environment.
+Use `python -m pip install -r requirements-lock.txt` to reproduce that environment.
+The main requirements remain the supported direct dependencies for Python 3.10–3.12.
+`model/verify_artifacts.py` independently checks split disjointness, dataset hash,
+saved predictions, recalculated metrics, and saved-model inference agreement.
+
+## Verified snapshot
+
+The committed model and reports are a fixed-settings reproduction attempt
+(seed 42, 70/15/15 split). Holdout accuracy is **66.06%**, F1 **0.3927**,
+and ROC-AUC **0.6519**. The paper's numerical results were **not reproduced**.
+Eight tests pass, including model reload and Streamlit pages. Full five-split
+sensitivity and final-hybrid SHAP were generated. Read the
+[validation report](docs/VALIDATION.md) and [raw metrics](reports/metrics.csv)
+before using these results in a thesis.
 
 ## What is measured
 
