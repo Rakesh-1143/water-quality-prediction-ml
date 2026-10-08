@@ -8,7 +8,7 @@ from config import REPORT_DIR
 st.set_page_config(page_title='Experiments',layout='wide')
 st.title('Measured Experiments')
 if not (REPORT_DIR/'evaluation.json').exists():
-    st.info('Run python model/train_model.py --tune --full to generate experiment reports.')
+    st.info('Run python model/train_model.py --full to generate experiment reports.')
     st.stop()
 report=json.loads((REPORT_DIR/'evaluation.json').read_text())
 st.write('Split sizes:',report['split_sizes'])
@@ -18,7 +18,7 @@ st.caption('Scores above come from this run. Reference paper: accuracy 0.869, F1
            'Equal results are not guaranteed.')
 for title,name in [('Ablations','ablations.json'),('Feature perturbation','feature_sensitivity.json'),
     ('Five split repetitions','split_sensitivity.json'),('Hybrid feature importance','hybrid_shap_importance.json'),
-    ('SHAP alignment','importance_alignment.json')]:
+    ('SHAP alignment','importance_alignment.json'),('Artifact verification','verification.json')]:
     with st.expander(title):
         p=REPORT_DIR/name
         if p.exists(): st.json(json.loads(p.read_text()))

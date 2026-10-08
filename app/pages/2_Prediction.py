@@ -19,7 +19,7 @@ try:
     signature=tuple((ARTIFACT_DIR/n).stat().st_mtime_ns for n in names)
     predictor=load_predictor(ARTIFACT_DIR,signature)
 except FileNotFoundError:
-    st.info('Train the paper model first: python model/train_model.py --tune --full')
+    st.info('Train the paper model first: python model/train_model.py --full')
     st.stop()
 except Exception as exc:
     st.error(f'Cannot load the paper model: {exc}')
