@@ -22,7 +22,26 @@ python -m pip install -r requirements.txt
 python -m unittest discover -s tests -v
 ```
 
-## Experiments and application
+## MTech abstract and guide demonstration
+
+The uploaded abstract is mapped in [abstract implementation](docs/ABSTRACT_IMPLEMENTATION.md).
+The app defaults to **Abstract implementation**, with the paper reproduction selectable in
+the sidebar. Trained models are included for both snapshots.
+
+```bash
+python model/train_model.py --initialization feature_glorot --full
+python model/verify_artifacts.py --output model/abstract --reports reports/abstract
+python model/predict.py examples/demo_measurements.csv --output demo-predictions.csv
+streamlit run app/app.py
+```
+
+The abstract model uses SHAP-weighted random initialization, a documented implementation
+choice rather than verified author code. Read [measured abstract results](docs/ABSTRACT_RESULTS.md)
+and the [laptop setup and guide demo](docs/GUIDE_DEMO.md). The UI supports a single measurement
+or a CSV upload with downloadable predictions. Abstract artifacts are in `model/abstract/`;
+its independent experiment evidence is in `reports/abstract/`.
+
+## Paper experiments
 
 ```bash
 # Table VIII parameters; baselines, fusion, ablations, perturbation and plots
@@ -54,7 +73,8 @@ saved predictions, recalculated metrics, and saved-model inference agreement.
 The committed model and reports are a fixed-settings reproduction attempt
 (seed 42, 70/15/15 split). Holdout accuracy is **66.06%**, F1 **0.3927**,
 and ROC-AUC **0.6519**. The paper's numerical results were **not reproduced**.
-Eight tests pass, including model reload and Streamlit pages. Full five-split
+Tests cover initialization, batched inference, model reload and both Streamlit snapshots.
+Full five-split
 sensitivity and final-hybrid SHAP were generated. Read the
 [validation report](docs/VALIDATION.md) and [raw metrics](reports/metrics.csv)
 before using these results in a thesis.

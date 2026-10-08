@@ -4,6 +4,8 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_PATH = BASE_DIR / 'data' / 'water_potability.csv'
 ARTIFACT_DIR = BASE_DIR / 'model' / 'paper'
 REPORT_DIR = BASE_DIR / 'reports'
+ABSTRACT_ARTIFACT_DIR = BASE_DIR / 'model' / 'abstract'
+ABSTRACT_REPORT_DIR = REPORT_DIR / 'abstract'
 FEATURES = ['ph', 'Hardness', 'Solids', 'Chloramines', 'Sulfate',
             'Conductivity', 'Organic_carbon', 'Trihalomethanes', 'Turbidity']
 RANDOM_STATE = 42
