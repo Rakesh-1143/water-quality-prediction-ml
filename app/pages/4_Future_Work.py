@@ -3,6 +3,7 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]))
 import pandas as pd
 import streamlit as st
+from wqi.validation import read_csv
 from config import BASE_DIR
 st.set_page_config(page_title='Future Work',layout='wide')
 st.title('Experimental Future Work')
@@ -32,7 +33,7 @@ if uploaded is not None:
         signature=tuple((p.name,p.stat().st_mtime_ns) for p in sorted(chosen.iterdir()) if p.is_file())
         predictor=load(chosen,signature)
         st.write('Experimental model:',predictor.meta['kind'])
-        result=predictor.predict(pd.read_csv(uploaded))
+        result=predictor.predict(read_csv(uploaded))
         st.dataframe(result,use_container_width=True)
         st.download_button('Download experimental predictions',result.to_csv(index=False),
                            file_name='future-predictions.csv',mime='text/csv')

@@ -4,6 +4,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[2]))
 import numpy as np
 import pandas as pd
 import streamlit as st
+from wqi.validation import read_csv
 from config import ARTIFACT_DIR, FEATURES
 from wqi.inference import Predictor
 from wqi.ui import experiment_paths
@@ -57,7 +58,7 @@ st.download_button('Download CSV template', template.to_csv(index=False),
 uploaded = st.file_uploader('Measurement CSV', type=['csv'])
 if uploaded is not None:
     try:
-        measurements = pd.read_csv(uploaded)
+        measurements = read_csv(uploaded)
         output = predictor.predict_frame(measurements)
         output.insert(0, 'row_number', range(1, len(output) + 1))
         st.dataframe(output, use_container_width=True)
