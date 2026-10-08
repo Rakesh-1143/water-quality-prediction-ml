@@ -39,6 +39,7 @@ class NeuralIntegration(unittest.TestCase):
         rng=np.random.default_rng(11)
         X=pd.DataFrame(rng.normal(size=(160,9)),columns=FEATURES)
         y=pd.Series((X.ph>0).astype(int))
+        X.loc[::7, 'Sulfate'] = np.nan
         run=trainer.fit_experiment(X,y,42,2)
         with tempfile.TemporaryDirectory() as directory:
             out=Path(directory)
@@ -49,6 +50,10 @@ class NeuralIntegration(unittest.TestCase):
             (out/'metadata.json').write_text(json.dumps({'schema':1,'features':FEATURES,'fusion':fusion,'alpha':result['alpha']}))
             p,_,_=Predictor(out).predict(run['Xt'])
             np.testing.assert_allclose(p,run['predictions']['hybrid_selected'],atol=1e-6)
+            invalid = run['Xt'].copy()
+            invalid.iloc[0, 0] = np.inf
+            with self.assertRaises(ValueError):
+                Predictor(out).predict(invalid)
         self.assertEqual(set(run['result']['test']),set(run['predictions']))
         self.assertIn('ann_shap',run['result']['test'])
 
