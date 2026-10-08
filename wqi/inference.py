@@ -25,8 +25,10 @@ class Predictor:
         if not set(FEATURES).issubset(frame.columns):
             raise ValueError('All nine features are required')
         values = frame[FEATURES].apply(pd.to_numeric, errors='raise')
-        if not np.isfinite(values.to_numpy()).all():
-            raise ValueError('Prediction inputs must be finite numbers')
+        # Missing measurements use the training medians, as in the paper's
+        # preprocessing pipeline. Infinite values remain invalid.
+        if np.isinf(values.to_numpy()).any():
+            raise ValueError('Prediction inputs must not contain infinite numbers')
         scaled = self.preprocess.transform(values)
         pn = probability(self.nn, scaled)
         px = self.xgb.predict_proba(scaled)[:, 1]
