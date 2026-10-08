@@ -39,6 +39,22 @@ class FutureWorkIntegration(unittest.TestCase):
             np.testing.assert_allclose(pred.filter(like='probability_'),saved.filter(like='probability_'),atol=1e-6)
             self.assertEqual(restored.meta['classes'],['A','B','C'])
             self.assertEqual(len(report['test']),4)
+            # Exercise the saved experimental model CSV page, without publishing fixtures.
+            import io
+            import shutil
+            from unittest.mock import patch
+            from streamlit.testing.v1 import AppTest
+            base=Path(directory)
+            (base/'docs').mkdir()
+            (base/'docs/FUTURE_WORK.md').write_text('Test fixture instructions')
+            (base/'experiments').mkdir()
+            shutil.copytree(base/'run',base/'experiments/run')
+            payload=io.BytesIO(frame.head(3).to_csv(index=False).encode())
+            with patch('config.BASE_DIR',base), patch('streamlit.file_uploader',return_value=payload):
+                app=AppTest.from_file(str(Path(__file__).resolve().parents[1]/'app/pages/4_Future_Work.py')).run(timeout=30)
+                self.assertEqual(len(app.exception),0)
+                self.assertEqual(len(app.dataframe[0].value),3)
+
 
     def test_chronological_lstm_windows_and_forecast_reload(self):
         frame=fixture(n=200); frame['timestamp']=pd.date_range('2020-01-01',periods=len(frame),freq='h')
@@ -53,6 +69,10 @@ class FutureWorkIntegration(unittest.TestCase):
             self.assertTrue(np.isfinite(pred.predicted_WQI.iloc[0]))
             expected=pd.to_datetime(frame.timestamp.iloc[-1],utc=True)+pd.Timedelta(hours=2)
             self.assertEqual(pd.to_datetime(pred.forecast_timestamp.iloc[0]),expected)
+            saved=pd.read_csv(out/'test_predictions.csv')
+            index=te[-1]
+            replay=FuturePredictor(out).predict(frame.iloc[index-2-4+1:index-2+1])
+            np.testing.assert_allclose(replay.predicted_WQI.iloc[0],saved.prediction.iloc[-1],atol=1e-4)
             with self.assertRaises(ValueError): FuturePredictor(out).predict(frame.iloc[-3:])
             bad=frame.iloc[-4:].copy(); bad['timestamp']=pd.date_range('2020-01-01',periods=4,freq='2h')
             with self.assertRaises(ValueError): FuturePredictor(out).predict(bad)
@@ -79,7 +99,7 @@ class FutureWorkIntegration(unittest.TestCase):
         self.assertEqual(restored.strength,.7)
 
     def test_dann_unlabeled_adaptation_and_heldout_target(self):
-        source=fixture(seed=24); target=fixture(seed=25).drop(columns='Potability'); test=fixture(seed=26)
+        source=fixture(seed=24); target=fixture(seed=25).drop(columns='Potability'); test=fixture(seed=26).iloc[:3].copy(); test["Potability"]=0
         with tempfile.TemporaryDirectory() as directory:
             out=Path(directory)/'run'
             report=dann(source,target,out,target_test=test,epochs=1)

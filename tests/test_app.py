@@ -16,6 +16,21 @@ class AppIntegration(unittest.TestCase):
                 app = AppTest.from_file(str(ROOT / name)).run(timeout=30)
                 self.assertEqual(len(app.exception), 0)
 
+    def test_csv_upload_handlers(self):
+        import io
+        import pandas as pd
+        from unittest.mock import patch
+        from streamlit.testing.v1 import AppTest
+        data=pd.read_csv(ROOT/'data/water_potability.csv').head(5).to_csv(index=False).encode()
+        for payload, valid in [(data,True),(b'ph,ph\n1,2\n',False)]:
+            with self.subTest(valid=valid), patch('streamlit.file_uploader',return_value=io.BytesIO(payload)):
+                app=AppTest.from_file(str(ROOT/'app/pages/2_Prediction.py')).run(timeout=30)
+                self.assertEqual(len(app.exception),0)
+                if valid:
+                    self.assertTrue(any(len(item.value)==5 for item in app.dataframe))
+                else:
+                    self.assertGreater(len(app.error),0)
+
     @unittest.skipUnless((ARTIFACT_DIR / 'metadata.json').exists(), 'Train artifacts first')
     def test_prediction_and_experiment_pages(self):
         from streamlit.testing.v1 import AppTest
