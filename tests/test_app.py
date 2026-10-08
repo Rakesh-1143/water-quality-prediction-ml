@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class AppIntegration(unittest.TestCase):
     def test_home_and_eda_render(self):
         from streamlit.testing.v1 import AppTest
-        for name in ['app/app.py', 'app/pages/1_EDA.py']:
+        for name in ['app/app.py', 'app/pages/1_EDA.py', 'app/pages/4_Future_Work.py']:
             with self.subTest(page=name):
                 app = AppTest.from_file(str(ROOT / name)).run(timeout=30)
                 self.assertEqual(len(app.exception), 0)
