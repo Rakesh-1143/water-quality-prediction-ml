@@ -1,0 +1,33 @@
+test_home_and_eda_render (test_app.AppIntegration.test_home_and_eda_render) ... 2026-10-08 13:07:01.518 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-08 13:07:01.644 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+/workspace/scratch/6f516a9962cc/water-quality-prediction-ml/.venv/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:64: PyparsingDeprecationWarning: 'oneOf' deprecated - use 'one_of'
+  prop = Group((name + Suppress("=") + comma_separated(value)) | oneOf(_CONSTANTS))
+/workspace/scratch/6f516a9962cc/water-quality-prediction-ml/.venv/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:85: PyparsingDeprecationWarning: 'parseString' deprecated - use 'parse_string'
+  parse = parser.parseString(pattern)
+/workspace/scratch/6f516a9962cc/water-quality-prediction-ml/.venv/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:89: PyparsingDeprecationWarning: 'resetCache' deprecated - use 'reset_cache'
+  parser.resetCache()
+/workspace/scratch/6f516a9962cc/water-quality-prediction-ml/.venv/lib/python3.12/site-packages/matplotlib/_mathtext.py:45: PyparsingDeprecationWarning: 'enablePackrat' deprecated - use 'enable_packrat'
+  ParserElement.enablePackrat()
+In /workspace/scratch/6f516a9962cc/water-quality-prediction-ml/.venv/lib/python3.12/site-packages/matplotlib/mpl-data/stylelib/classic.mplstyle: 'parseString' deprecated - use 'parse_string'
+In /workspace/scratch/6f516a9962cc/water-quality-prediction-ml/.venv/lib/python3.12/site-packages/matplotlib/mpl-data/stylelib/classic.mplstyle: 'resetCache' deprecated - use 'reset_cache'
+ok
+test_prediction_and_experiment_pages (test_app.AppIntegration.test_prediction_and_experiment_pages) ... 2026-10-08 13:07:03.972 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-08 13:07:07.110 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_dataset_and_disjoint_stratified_splits (test_core.CoreTests.test_dataset_and_disjoint_stratified_splits) ... ok
+test_fusion_and_probability_metrics (test_core.CoreTests.test_fusion_and_probability_metrics) ... ok
+test_shap_weight_matrix (test_core.CoreTests.test_shap_weight_matrix) ... ok
+test_train_only_median_and_scaling (test_core.CoreTests.test_train_only_median_and_scaling) ... ok
+test_entire_training_artifact_inference_roundtrip (test_neural.NeuralIntegration.test_entire_training_artifact_inference_roundtrip) ... /workspace/scratch/6f516a9962cc/water-quality-prediction-ml/.venv/lib/python3.12/site-packages/shap/plots/colors/_colorconv.py:819: DeprecationWarning: Converting `np.inexact` or `np.floating` to a dtype is deprecated. The current result is `float64` which is not strictly correct.
+  if np.issubdtype(dtype_in, np.dtype(dtype).type):
+/workspace/scratch/6f516a9962cc/water-quality-prediction-ml/.venv/lib/python3.12/site-packages/keras/src/trainers/epoch_iterator.py:74: UserWarning: `shuffle=True` was passed, but will be ignored since the data `x` was provided as a tf.data.Dataset. The Dataset is expected to already be shuffled (via `.shuffle(buffer_size)`).
+  self.data_adapter = data_adapters.get_data_adapter(
+ok
+test_initialization_training_and_reload_predictions (test_neural.NeuralIntegration.test_initialization_training_and_reload_predictions) ... /workspace/scratch/6f516a9962cc/water-quality-prediction-ml/.venv/lib/python3.12/site-packages/keras/src/trainers/epoch_iterator.py:74: UserWarning: `shuffle=True` was passed, but will be ignored since the data `x` was provided as a tf.data.Dataset. The Dataset is expected to already be shuffled (via `.shuffle(buffer_size)`).
+  self.data_adapter = data_adapters.get_data_adapter(
+ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 11.429s
+
+OK
