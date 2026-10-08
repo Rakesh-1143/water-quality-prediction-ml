@@ -41,7 +41,15 @@ and the [laptop setup and guide demo](docs/GUIDE_DEMO.md). The UI supports a sin
 or a CSV upload with downloadable predictions. Abstract artifacts are in `model/abstract/`;
 its independent experiment evidence is in `reports/abstract/`.
 
-## Paper experiments
+## Experimental future-work code
+
+Multiclass SHAP-ANN/XGBoost, chronological LSTM forecasting, source-ANN transfer learning and
+DANN domain adaptation are available in `future_work/` through `model/future_work.py`.
+See [dataset contracts and commands](docs/FUTURE_WORK.md).
+These paths have software integration tests; genuine future-work datasets have not been supplied,
+so no real-data future-work accuracy is claimed. Existing abstract/paper results remain separate.
+
+## Paper experiment commands
 
 ```bash
 # Table VIII parameters; baselines, fusion, ablations, perturbation and plots

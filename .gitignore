@@ -32,3 +32,6 @@ Thumbs.db
 model/paper/
 reports/
 .venv/
+# Future-work runs are local until intentionally reviewed for publication.
+experiments/
+datasets/
