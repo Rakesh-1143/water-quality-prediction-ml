@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import argparse
-import pandas as pd
+from wqi.validation import read_csv
 from config import ABSTRACT_ARTIFACT_DIR
 from wqi.inference import Predictor
 
@@ -17,7 +17,7 @@ def main():
     if args.input.resolve() == args.output.resolve():
         parser.error('Output must differ from the input CSV')
     try:
-        frame = pd.read_csv(args.input)
+        frame = read_csv(args.input)
         result = Predictor(args.model).predict_frame(frame)
         result.insert(0, 'row_number', range(1, len(result) + 1))
         args.output.parent.mkdir(parents=True, exist_ok=True)

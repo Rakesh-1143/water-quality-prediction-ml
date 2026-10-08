@@ -4,7 +4,7 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import argparse
 import json
-import pandas as pd
+from wqi.validation import read_csv
 from future_work.training import multiclass, timeseries, transfer, dann
 from future_work.core import FuturePredictor
 
@@ -35,7 +35,7 @@ def main():
     try:
         if args.command=='predict':
             if args.output.resolve()==args.data.resolve(): raise ValueError('Do not overwrite input measurements')
-            prediction=FuturePredictor(args.model).predict(pd.read_csv(args.data))
+            prediction=FuturePredictor(args.model).predict(read_csv(args.data))
             args.output.parent.mkdir(parents=True,exist_ok=True)
             prediction.to_csv(args.output,index=False,float_format='%.17g')
             print(f'Saved {len(prediction)} prediction rows'); return
@@ -44,11 +44,11 @@ def main():
             raise ValueError('Choose a new empty output directory')
         common={'output':args.output,'epochs':args.epochs,'seed':args.seed}
         if args.command=='dann':
-            report=dann(pd.read_csv(args.source),pd.read_csv(args.target_adapt),
-                target_test=pd.read_csv(args.target_test) if args.target_test else None,
+            report=dann(read_csv(args.source),read_csv(args.target_adapt),
+                target_test=read_csv(args.target_test) if args.target_test else None,
                 strength=args.strength,**common)
         else:
-            frame=pd.read_csv(args.data)
+            frame=read_csv(args.data)
             if args.command=='multiclass': report=multiclass(frame,label=args.label,**common)
             elif args.command=='timeseries':
                 report=timeseries(frame,label=args.label,timestamp=args.timestamp,
