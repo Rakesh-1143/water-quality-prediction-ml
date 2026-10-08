@@ -2,7 +2,7 @@
 import importlib.util
 import unittest
 from pathlib import Path
-from config import ARTIFACT_DIR
+from config import ARTIFACT_DIR, ABSTRACT_ARTIFACT_DIR
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -20,14 +20,23 @@ class AppIntegration(unittest.TestCase):
     def test_prediction_and_experiment_pages(self):
         from streamlit.testing.v1 import AppTest
         app = AppTest.from_file(str(ROOT / 'app/pages/2_Prediction.py')).run(timeout=30)
-        self.assertEqual(len(app.exception), 0)
-        self.assertEqual(len(app.number_input), 9)
-        app.button[0].click().run(timeout=30)
-        self.assertEqual(len(app.exception), 0)
-        self.assertEqual(app.metric[0].label, 'Model probability of potable class')
+        # Both independent snapshots must load and support the same form.
+        for mode in ['Paper reproduction attempt', 'Abstract implementation']:
+            if mode == 'Abstract implementation' and not (ABSTRACT_ARTIFACT_DIR / 'metadata.json').exists():
+                continue
+            app.selectbox[0].select(mode).run(timeout=30)
+            self.assertEqual(len(app.exception), 0)
+            self.assertEqual(len(app.number_input), 9)
+            app.button[0].click().run(timeout=30)
+            self.assertEqual(len(app.exception), 0)
+            self.assertEqual(app.metric[0].label, 'Model probability of potable class')
         experiments = AppTest.from_file(str(ROOT / 'app/pages/3_Experiments.py')).run(timeout=30)
-        self.assertEqual(len(experiments.exception), 0)
-        self.assertGreater(len(experiments.dataframe), 0)
+        for mode in ['Paper reproduction attempt', 'Abstract implementation']:
+            if mode == 'Abstract implementation' and not (ABSTRACT_ARTIFACT_DIR / 'metadata.json').exists():
+                continue
+            experiments.selectbox[0].select(mode).run(timeout=30)
+            self.assertEqual(len(experiments.exception), 0)
+            self.assertGreater(len(experiments.dataframe), 0)
 
 
 if __name__ == '__main__':

@@ -9,6 +9,17 @@ from config import FEATURES
 
 @unittest.skipUnless(importlib.util.find_spec('tensorflow'), 'TensorFlow not installed')
 class NeuralIntegration(unittest.TestCase):
+    def test_feature_weighted_glorot_is_seeded_and_not_repeated(self):
+        import tensorflow as tf
+        from wqi.neural import build_ann
+        weights = np.arange(1,10) / 45
+        kernel = build_ann(weights, seed=17, initialization='feature_glorot').get_layer('feature_layer').get_weights()[0]
+        base = tf.keras.initializers.GlorotUniform(seed=17)((9,16)).numpy()
+        np.testing.assert_allclose(kernel, base * np.sqrt(9 * weights.astype('float32'))[:,None])
+        self.assertFalse(np.allclose(kernel[:,0], kernel[:,1]))
+        other = build_ann(weights, seed=17, initialization='feature_glorot').get_layer('feature_layer').get_weights()[0]
+        np.testing.assert_array_equal(kernel, other)
+
     def test_initialization_training_and_reload_predictions(self):
         from wqi.neural import build_ann, fit_ann, probability
         from tensorflow.keras.models import load_model
@@ -54,6 +65,17 @@ class NeuralIntegration(unittest.TestCase):
             invalid.iloc[0, 0] = np.inf
             with self.assertRaises(ValueError):
                 Predictor(out).predict(invalid)
+            predictor = Predictor(out)
+            frame = run['Xt'].iloc[:7].copy()
+            frame.iloc[0, 0] = np.nan
+            batch = predictor.predict_frame(frame, batch_size=3)
+            direct, _, _ = predictor.predict(frame)
+            np.testing.assert_allclose(batch.potable_probability, direct, atol=1e-6)
+            self.assertEqual(batch.index.tolist(), frame.index.tolist())
+            self.assertGreaterEqual(batch.imputed_measurements.iloc[0], 1)
+            self.assertEqual(batch.predicted_class.tolist(), (direct >= .5).astype(int).tolist())
+            with self.assertRaises(ValueError): predictor.predict_frame(frame.iloc[:0])
+            with self.assertRaises(ValueError): predictor.predict_frame(frame.drop(columns='ph'))
         self.assertEqual(set(run['result']['test']),set(run['predictions']))
         self.assertIn('ann_shap',run['result']['test'])
 
