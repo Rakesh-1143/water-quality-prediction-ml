@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "features": [
+    "ph",
+    "Hardness",
+    "Solids",
+    "Chloramines",
+    "Sulfate",
+    "Conductivity",
+    "Organic_carbon",
+    "Trihalomethanes",
+    "Turbidity"
+  ],
+  "fusion": "average",
+  "alpha": 0.5,
+  "seed": 42,
+  "epochs_limit": 100,
+  "initialization": "feature_glorot",
+  "dataset_sha256": "111a9ba65f2d791003ac07b54b8e18e2f7e0bc1cfa37cfdb251d3758a4e8c24c",
+  "versions": {
+    "tensorflow-cpu": "2.18.0",
+    "xgboost": "2.1.3",
+    "shap": "0.46.0",
+    "scikit-learn": "1.5.2",
+    "numpy": "1.26.4",
+    "pandas": "2.2.3"
+  },
+  "test_metrics": {
+    "accuracy": 0.6707317073170732,
+    "precision": 0.6829268292682927,
+    "recall": 0.2916666666666667,
+    "f1": 0.40875912408759124,
+    "roc_auc": 0.669045138888889,
+    "rmse": 0.46032741203507965,
+    "mae": 0.42890924484870296,
+    "r2": 0.10948467634648396,
+    "confusion_matrix": [
+      [
+        274,
+        26
+      ],
+      [
+        136,
+        56
+      ]
+    ]
+  },
+  "initialization_weights": {
+    "ph": 0.1485322857223783,
+    "Hardness": 0.12034217254238107,
+    "Solids": 0.09873879275037675,
+    "Chloramines": 0.11106977547518886,
+    "Sulfate": 0.14968573001494612,
+    "Conductivity": 0.09791549827914843,
+    "Organic_carbon": 0.08959455572609337,
+    "Trihalomethanes": 0.08872332214497382,
+    "Turbidity": 0.09539786734451337
+  }
+}
