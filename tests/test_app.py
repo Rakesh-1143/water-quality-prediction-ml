@@ -62,6 +62,17 @@ def test_prediction_changes_with_inputs():
     assert not at.exception and first != second
 
 
+def test_prediction_page_wqi_task_switch():
+    at = page("app/pages/2_Prediction.py")
+    at.sidebar.radio[0].set_value("WQI-based good / poor").run()
+    assert not at.exception and any("formula" in c.value for c in at.caption)
+    at.button[0].click().run()
+    assert not at.exception
+    verdicts = [x.value for x in list(at.success) + list(at.error)]
+    assert len(verdicts) == 1 and ("GOOD" in verdicts[0] or "POOR" in verdicts[0])
+    assert any("WQI by formula" in m.value for m in at.markdown)
+
+
 def test_multiclass_page_formula_and_model():
     at = page("app/pages/3_Multiclass_WQI.py")
     assert len(at.sidebar.slider) == 9 and len(at.metric) == 1
@@ -86,3 +97,4 @@ def test_time_series_page_shows_real_data_notice_and_metrics():
 def test_performance_page_tables():
     at = page("app/pages/5_Model_Performance.py")
     assert len(at.tabs) == 5 and len(at.dataframe) >= 5
+    assert any("WQI-based good / poor" in h.value for h in at.subheader)

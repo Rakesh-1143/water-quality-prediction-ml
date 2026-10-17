@@ -92,6 +92,15 @@ class BinaryBundle(_Bundle):
     n_classes = 2
 
 
+class WqiBinaryBundle(BinaryBundle):
+    """Same hybrid model, trained on the WQI-derived good / poor label (not the Kaggle label)."""
+    prefix = "wqibin_"
+
+    @property
+    def wqi_cutoff(self):
+        return self.meta["wqi_cutoff"]
+
+
 class MulticlassBundle(_Bundle):
     """SHAP-initialised ANN + XGBoost for the 4 WQI levels."""
     prefix = "wqi_"

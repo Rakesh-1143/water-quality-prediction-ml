@@ -4,12 +4,20 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 
 import streamlit as st
 
-from src.ui import binary_bundle, feature_sliders, require, shap_bar
+from src.ui import binary_bundle, feature_sliders, require, shap_bar, wqibin_bundle
+from src.wqi import compute_wqi
 
 st.set_page_config(page_title="Prediction", page_icon="🔬", layout="wide")
 st.title("Water Quality Prediction")
 
-bundle = require(binary_bundle(), "train_model.py")
+TASKS = ["Kaggle potability label", "WQI-based good / poor"]
+task = st.sidebar.radio("Prediction task", TASKS, key="task")
+wqi_task = task == TASKS[1]
+bundle = require(wqibin_bundle() if wqi_task else binary_bundle(),
+                 "train_model.py --task wqi" if wqi_task else "train_model.py")
+if wqi_task:
+    st.caption("Good = WQI at or below the dataset median. This label is a formula of the 9 inputs "
+               "(not the Kaggle potability label), so accuracy is very high.")
 X = feature_sliders("pred")
 
 with st.expander("What do these parameters mean?"):
@@ -37,17 +45,22 @@ with col2:
         p_nn, p_xgb = bundle.components(X)
         p = float(bundle.predict_proba(X)[0])
 
+        good, bad = ("Water quality is GOOD (low WQI)", "Water quality is POOR (high WQI)") if wqi_task \
+            else ("Water is Safe for Drinking", "Water is NOT Safe for Drinking")
         if p >= 0.5:
-            st.success("Water is Safe for Drinking")
+            st.success(good)
         else:
-            st.error("Water is NOT Safe for Drinking")
+            st.error(bad)
+        if wqi_task:
+            st.write(f"WQI by formula: **{float(compute_wqi(X).iloc[0]):.1f}** "
+                     f"(good if ≤ {bundle.wqi_cutoff:.1f})")
 
         confidence = max(p, 1 - p)
-        st.info(f"Model Confidence: {confidence:.1%}  (P(potable) = {p:.3f})")
+        st.info(f"Model Confidence: {confidence:.1%}  (P({'good' if wqi_task else 'potable'}) = {p:.3f})")
         st.progress(float(confidence))
         st.caption(f"SHAP-initialised ANN: {float(p_nn[0]):.3f} · XGBoost: {float(p_xgb[0]):.3f} · "
                    f"weight α = {bundle.alpha}")
 
         st.subheader("Why this prediction? (SHAP)")
         st.pyplot(shap_bar(bundle.explain(X)[0, :, 0]))
-        st.caption("Blue pushes toward potable, orange toward not potable (XGBoost component).")
+        st.caption("Blue pushes toward the positive class (potable / good), orange toward the other (XGBoost component).")

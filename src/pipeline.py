@@ -6,7 +6,7 @@ from sklearn.svm import SVR
 from xgboost import XGBClassifier
 
 from config import FEATURES, RANDOM_STATE, RF_PARAMS, WQI_CLASSES, XGB_PARAMS
-from src.artifacts import BinaryBundle, MulticlassBundle
+from src.artifacts import BinaryBundle, MulticlassBundle, WqiBinaryBundle
 from src.data import load_dataset, prepare
 from src.hybrid import fit_stacker, fuse_average, select_alpha, stack_predict
 from src.metrics import binary_metrics, multiclass_metrics, roc_points
@@ -36,9 +36,30 @@ def _binary_probs(parts, scaled):
     return out
 
 
-def run_binary_pipeline(df=None, seed=RANDOM_STATE, epochs=None, baselines=True):
-    """Train the proposed hybrid model and (optionally) the baselines/ablations of the paper."""
+def make_wqi_binary_labels(df):
+    """1 = good (WQI at or below the median), 0 = poor. Returns (labels, cutoff).
+
+    A formula of the 9 features, NOT the Kaggle potability label (their correlation is ~ -0.04).
+    """
+    imputed = df[FEATURES].fillna(df[FEATURES].median())
+    wqi = compute_wqi(imputed)
+    cutoff = float(wqi.median())
+    return (wqi <= cutoff).astype(int), cutoff
+
+
+def run_binary_pipeline(df=None, seed=RANDOM_STATE, epochs=None, baselines=True, task="potability"):
+    """Train the proposed hybrid model and (optionally) the baselines/ablations of the paper.
+
+    task="potability": Kaggle Potability label. task="wqi": WQI-derived good / poor label.
+    """
     df = load_dataset() if df is None else df
+    extra_meta, bundle_cls = {}, BinaryBundle
+    if task == "wqi":
+        labels, cutoff = make_wqi_binary_labels(df)
+        df = df.assign(Potability=labels)
+        extra_meta, bundle_cls = dict(wqi_cutoff=cutoff, task="wqi"), WqiBinaryBundle
+    elif task != "potability":
+        raise ValueError(f"Unknown task: {task}")
     splits, pre, scaled = prepare(df, seed)
     y_val, y_test = splits.y_val.values, splits.y_test.values
 
@@ -53,8 +74,8 @@ def run_binary_pipeline(df=None, seed=RANDOM_STATE, epochs=None, baselines=True)
 
     meta = dict(seed=seed, shap_importance=parts["importance"].to_dict(),
                 shap_weights=parts["weights"].to_dict(), alpha_scores=alpha_scores,
-                n_train=len(splits.y_train), n_val=len(y_val), n_test=len(y_test))
-    bundle = BinaryBundle(pre, parts["ann"], parts["xgb"], alpha, meta, stacker)
+                n_train=len(splits.y_train), n_val=len(y_val), n_test=len(y_test), **extra_meta)
+    bundle = bundle_cls(pre, parts["ann"], parts["xgb"], alpha, meta, stacker)
 
     results = dict(
         alpha=alpha, alpha_val_auc=alpha_scores,
@@ -65,7 +86,8 @@ def run_binary_pipeline(df=None, seed=RANDOM_STATE, epochs=None, baselines=True)
         loss_curve={k: [float(v) for v in parts["history"][k]] for k in ("loss", "val_loss")},
         roc={"Proposed Hybrid Model": roc_points(y_test, p_hybrid)},
         split_sizes=dict(train=len(splits.y_train), val=len(y_val), test=len(y_test)),
-        positive_rate=float(np.mean(df["Potability"])),
+        positive_rate=float(np.mean(df["Potability"])), task=task,
+        **{k: v for k, v in extra_meta.items() if k != "task"},
     )
     if baselines:
         results.update(_baselines(splits, scaled, parts, probs, p_hybrid, seed, epochs, y_val, y_test))
@@ -104,9 +126,11 @@ def _baselines(splits, scaled, parts, probs, p_hybrid, seed, epochs, y_val, y_te
     )
 
 
-def run_sensitivity(df=None, seeds=(0, 1, 2, 3, 4), epochs=None):
+def run_sensitivity(df=None, seeds=(0, 1, 2, 3, 4), epochs=None, task="potability"):
     """Paper Sec. IV-D: repeat random 70/15/15 splits and report mean +- std."""
     df = load_dataset() if df is None else df
+    if task == "wqi":
+        df = df.assign(Potability=make_wqi_binary_labels(df)[0])
     accs, f1s, aucs = [], [], []
     for s in seeds:
         splits, _, scaled = prepare(df, s)

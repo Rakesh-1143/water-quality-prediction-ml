@@ -8,7 +8,7 @@ import pytest
 
 from config import FEATURES
 from src.artifacts import BinaryBundle, MulticlassBundle, load_results, save_results
-from src.pipeline import perturbation_test, run_sensitivity
+from src.pipeline import make_wqi_binary_labels, perturbation_test, run_binary_pipeline, run_sensitivity
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 METRICS = {"accuracy", "precision", "recall", "f1", "roc_auc", "rmse", "mae"}
@@ -108,6 +108,7 @@ def test_results_json_roundtrip(tmp_path):
 
 @pytest.mark.parametrize("script,extra,expected", [
     ("train_model.py", ["--skip-sensitivity"], ["binary_nn.keras", "results_binary.json"]),
+    ("train_model.py", ["--skip-sensitivity", "--task", "wqi"], ["wqibin_nn.keras", "results_wqibin.json"]),
     ("train_multiclass.py", [], ["wqi_nn.keras", "results_wqi.json"]),
     ("train_lstm.py", [], ["lstm.keras", "results_lstm.json"]),
 ])
@@ -120,3 +121,31 @@ def test_training_scripts_run_end_to_end(script, extra, expected, tmp_path):
     for name in expected:
         assert (tmp_path / name).exists(), name
     json.load(open(tmp_path / expected[-1]))
+
+
+def test_wqi_binary_labels_are_a_balanced_formula_of_the_inputs(df):
+    from src.wqi import compute_wqi
+    labels, cutoff = make_wqi_binary_labels(df)
+    wqi = compute_wqi(df[FEATURES].fillna(df[FEATURES].median()))
+    assert labels.mean() == pytest.approx(0.5, abs=0.01)
+    assert ((wqi <= cutoff).astype(int) == labels).all()          # good iff WQI <= cutoff
+    assert abs(np.corrcoef(labels, df["Potability"])[0, 1]) < 0.1  # unrelated to the Kaggle label
+
+
+def test_wqi_binary_pipeline_and_bundle(wqi_binary_run, tmp_path):
+    from src.artifacts import WqiBinaryBundle
+    r, bundle = wqi_binary_run["results"], wqi_binary_run["bundle"]
+    assert r["task"] == "wqi" and r["positive_rate"] == pytest.approx(0.5, abs=0.01)
+    assert r["hybrid_average"]["accuracy"] > 0.8        # label is a formula of the inputs
+    assert isinstance(bundle, WqiBinaryBundle) and bundle.prefix == "wqibin_"
+    bundle.save(str(tmp_path))
+    loaded = WqiBinaryBundle.load(str(tmp_path))
+    X = wqi_binary_run["splits"].X_test
+    assert loaded.wqi_cutoff == bundle.wqi_cutoff
+    assert loaded.predict_proba(X) == pytest.approx(bundle.predict_proba(X), abs=1e-5)
+    assert not BinaryBundle.exists(str(tmp_path))       # does not overwrite the Kaggle-label files
+
+
+def test_unknown_task_rejected(df):
+    with pytest.raises(ValueError):
+        run_binary_pipeline(df, epochs=1, task="nope")

@@ -38,3 +38,9 @@ def lstm_run(df):
 def brisbane_run():
     from src.pipeline_ts import run_lstm_pipeline
     return run_lstm_pipeline(dataset="brisbane", freq="h", epochs=2)
+
+
+@pytest.fixture(scope="session")
+def wqi_binary_run(df):
+    from src.pipeline import run_binary_pipeline
+    return run_binary_pipeline(df, epochs=QUICK_EPOCHS, task="wqi")

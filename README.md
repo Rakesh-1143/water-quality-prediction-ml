@@ -64,6 +64,19 @@ Ablation:
 - **These numbers are lower than the paper's (86.9% accuracy, AUC 0.894).** On this dataset the hybrid is the best model by accuracy and AUC here, but the margins are small and within the split-to-split variation above. The paper's higher numbers could not be reproduced with a leakage-free protocol. The paper's Table V weights also sum to 1.079, which contradicts its Eq. 3; this code uses Eq. 3.
 - The previous version of this repo reported 71% using SMOTE and scaling *before* the split (leakage); it has been removed.
 
+WQI-based good / poor task (second binary task, `python model/train_model.py --task wqi`): label = 1 if the computed WQI is at or below the dataset median (50% positive), else 0.
+
+| Model | Accuracy | F1 | ROC-AUC |
+|---|---|---|---|
+| Random Forest | 0.941 | 0.942 | 0.989 |
+| SVR | 0.949 | 0.949 | 0.990 |
+| ANN (Xavier Init) | 0.967 | 0.967 | 0.996 |
+| XGBoost (Standalone) | 0.959 | 0.960 | 0.995 |
+| Proposed Hybrid Model | 0.978 | 0.978 | 0.997 |
+
+- Hybrid accuracy **0.978**, 5 random splits 0.965 ± 0.007. This is far above the paper's 86.9% and **not comparable** to the potability task: the label is a formula of the same 9 inputs (any good model can learn it) and has almost no correlation with the Kaggle label (about -0.04). Use it only as a separate, clearly labelled task. In this task SHAP initialisation does not beat Xavier on its own (0.963 vs 0.967); the boosting step gives the gain.
+- The paper's Table X shows continuous "WQI class" values, which suggests the paper may have predicted a WQI-type label rather than the Kaggle one. This is a guess; the paper does not say how its WQI was built.
+
 Multiclass WQI (4 balanced levels): hybrid accuracy 0.907, macro-F1 0.907 (ANN only 0.878, XGBoost only 0.868).
 
 **Important notes**
@@ -106,7 +119,7 @@ pip install -r requirements-dev.txt
 python -m pytest tests -q
 ```
 
-The suite (77 tests) covers the split and preprocessing (no leakage), WQI formula, SHAP weights and initialisation, ANN/XGBoost/fusion, metrics, all three training scripts end to end, model save/load, that the saved models reproduce the reported metrics, the LSTM pipeline, and every Streamlit page (headless, with button clicks).
+The suite (83 tests) covers the split and preprocessing (no leakage), WQI formula, SHAP weights and initialisation, ANN/XGBoost/fusion, metrics, all three training scripts end to end, model save/load, that the saved models reproduce the reported metrics, the LSTM pipeline, and every Streamlit page (headless, with button clicks).
 
 ## App pages
 
@@ -114,7 +127,7 @@ The suite (77 tests) covers the split and preprocessing (no leakage), WQI formul
 |---|---|
 | Home | Headline metrics |
 | EDA | Overview, class balance, missing values, distributions, IQR outliers, correlations |
-| Prediction | 9 sliders -> potable / not potable, confidence, NN and XGBoost outputs, SHAP explanation |
+| Prediction | 9 sliders -> potable / not potable (or WQI good / poor), confidence, NN and XGBoost outputs, SHAP explanation |
 | Multiclass WQI | WQI value and level by formula, model-predicted level, class probabilities, SHAP |
 | Time Series | LSTM test-period plot vs persistence, and next-hour forecast from an uploaded CSV |
 | Model Performance | Comparison, ablation, ROC, loss curve, SHAP ranking, stability |

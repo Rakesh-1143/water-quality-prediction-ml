@@ -64,6 +64,16 @@ with t5:
                  f"{p['decrease']['drop']:.3f} (−10%), {p['increase']['drop']:.3f} (+10%) "
                  f"from baseline {p['baseline_accuracy']:.3f}")
 
+wb = results("wqibin")
+if wb:
+    st.divider()
+    st.subheader("WQI-based good / poor task")
+    st.caption("Label = WQI at or below the median. It is a formula of the 9 inputs and is unrelated to the "
+               "Kaggle potability label (correlation about -0.04), so these accuracies are not comparable "
+               "to the potability results above.")
+    st.dataframe(table(wb["comparison"]))
+    st.dataframe(table(wb["ablation"]))
+
 wqi = results("wqi")
 if wqi:
     st.divider()

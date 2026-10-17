@@ -3,10 +3,10 @@ import numpy as np
 import pytest
 
 from config import FEATURES, RANDOM_STATE
-from src.artifacts import BinaryBundle, MulticlassBundle, load_results
+from src.artifacts import BinaryBundle, MulticlassBundle, WqiBinaryBundle, load_results
 from src.data import split_data
 from src.metrics import binary_metrics
-from src.pipeline import make_wqi_labels
+from src.pipeline import make_wqi_binary_labels, make_wqi_labels
 from src.pipeline_ts import load_lstm
 from src.timeseries import forecast_next
 
@@ -27,6 +27,16 @@ def test_binary_stacking_reproduces_reported_metrics(df):
     s = split_data(df[FEATURES], df["Potability"], seed=RANDOM_STATE)
     m = binary_metrics(s.y_test.values, bundle.predict_proba(s.X_test, "stacking"))
     assert m["accuracy"] == pytest.approx(res["hybrid_stacking"]["accuracy"], abs=1e-4)
+
+
+def test_wqi_binary_files_reproduce_reported_test_metrics(df):
+    bundle, res = WqiBinaryBundle.load(), load_results("wqibin")
+    labels, cutoff = make_wqi_binary_labels(df)
+    s = split_data(df[FEATURES], labels, seed=RANDOM_STATE)
+    m = binary_metrics(s.y_test.values, bundle.predict_proba(s.X_test))
+    for k, v in res["hybrid_average"].items():
+        assert m[k] == pytest.approx(v, abs=1e-4), k
+    assert bundle.wqi_cutoff == pytest.approx(cutoff)
 
 
 def test_multiclass_files_reproduce_reported_accuracy(df):

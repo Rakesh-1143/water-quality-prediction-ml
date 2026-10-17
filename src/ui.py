@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from config import FEATURES
-from src.artifacts import BinaryBundle, MulticlassBundle, load_results
+from src.artifacts import BinaryBundle, MulticlassBundle, WqiBinaryBundle, load_results
 from src.pipeline_ts import load_lstm
 
 # label, min, max, default
@@ -32,6 +32,11 @@ def feature_sliders(prefix):
 @st.cache_resource
 def binary_bundle():
     return BinaryBundle.load() if BinaryBundle.exists() else None
+
+
+@st.cache_resource
+def wqibin_bundle():
+    return WqiBinaryBundle.load() if WqiBinaryBundle.exists() else None
 
 
 @st.cache_resource

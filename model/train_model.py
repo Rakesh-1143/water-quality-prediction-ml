@@ -1,7 +1,7 @@
 """Train the proposed hybrid model (SHAP-initialised ANN + XGBoost) for potable / not potable.
 
 Also trains the baselines (RF, SVR, ANN-Xavier, XGBoost) and runs the ablation and
-sensitivity studies of the IEEE paper. Usage: python model/train_model.py [--skip-sensitivity]
+sensitivity studies of the IEEE paper. Usage: python model/train_model.py [--task potability|wqi] [--skip-sensitivity]
 """
 import argparse
 import os
@@ -24,12 +24,14 @@ def show(title, table):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--task", choices=["potability", "wqi"], default="potability",
+                        help="potability = Kaggle label; wqi = WQI-derived good/poor label")
     parser.add_argument("--skip-sensitivity", action="store_true")
     parser.add_argument("--out-dir", default=ARTIFACT_DIR, help="where to save trained files")
     parser.add_argument("--epochs", type=int, default=None, help="override max epochs (quick runs)")
     args = parser.parse_args()
 
-    out = run_binary_pipeline(seed=RANDOM_STATE, epochs=args.epochs)
+    out = run_binary_pipeline(seed=RANDOM_STATE, epochs=args.epochs, task=args.task)
     bundle, results = out["bundle"], out["results"]
     show("Model comparison (test set)", results["comparison"])
     show("Ablation (test set)", results["ablation"])
@@ -42,13 +44,13 @@ def main():
                                                 out["splits"].y_test.values, top3)
     print("Perturbation (+-10% on top-3 SHAP features):", results["perturbation"])
     if not args.skip_sensitivity:
-        results["sensitivity"] = run_sensitivity(epochs=args.epochs)
+        results["sensitivity"] = run_sensitivity(epochs=args.epochs, task=args.task)
         s = results["sensitivity"]
         print(f"5 random splits: accuracy {s['accuracy']['mean']:.3f} +- {s['accuracy']['std']:.3f}, "
               f"F1 {s['f1']['mean']:.3f} +- {s['f1']['std']:.3f}")
 
     bundle.save(args.out_dir)
-    save_results("binary", results, args.out_dir)
+    save_results("binary" if args.task == "potability" else "wqibin", results, args.out_dir)
     print(f"\nSaved model and results to {args.out_dir}")
 
 
