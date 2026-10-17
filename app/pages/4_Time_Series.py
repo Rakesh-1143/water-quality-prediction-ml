@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 
-from src.timeseries import clean_series, forecast_next
+from src.timeseries import break_at_gaps, clean_series, forecast_next
 from src.ui import lstm_bundle, require, results
 from src.wqi import PROFILES, class_name, classify_wqi
 
@@ -33,14 +33,15 @@ if res:
     c3.metric("Level accuracy", f"{res['level_accuracy']:.1%}", f"persistence {res['level_accuracy_persistence']:.1%}", delta_color="off")
     st.subheader(f"Test period: actual vs predicted WQI (next {unit})")
     fig, ax = plt.subplots(figsize=(10, 3.5))
-    x = pd.to_datetime(res["test_dates"]) if res["test_dates"] else range(len(res["test_true"]))
-    ax.plot(x, res["test_true"], label="Actual", lw=1)
-    ax.plot(x, res["test_pred"], label="LSTM", alpha=0.8, lw=1)
+    x, (true, pred) = break_at_gaps(res["test_dates"], res["test_true"], res["test_pred"])
+    ax.plot(x, true, label="Actual", lw=1)
+    ax.plot(x, pred, label="LSTM", alpha=0.8, lw=1)
     ax.set_ylabel("WQI (lower = better)")
     ax.legend()
     st.pyplot(fig)
     st.caption(f"{res['n_test']} test steps, never used for training or tuning. "
-               "'Persistence' predicts that the next WQI equals the current one.")
+               "'Persistence' predicts that the next WQI equals the current one. "
+               "Windows never span a gap in the sensor record, and lines are broken at gaps.")
 
 st.subheader("Forecast from your own data")
 st.write(f"Upload a CSV with a `date` column and these columns: `{'`, `'.join(features)}` "
@@ -50,7 +51,7 @@ if file is not None:
     try:
         ts = clean_series(pd.read_csv(file), features)
         value = forecast_next(bundle["model"], bundle["scaler"], bundle["cols"], ts[features],
-                              bundle["window"], PROFILES[bundle["profile"]])
+                              bundle["window"], PROFILES[bundle["profile"]], dates=ts["date"])
         level = class_name(classify_wqi(value, bundle["cutoffs"]))
         st.metric(f"Forecast WQI (next {unit})", f"{value:.1f}")
         st.success(f"Expected quality level: {level}")

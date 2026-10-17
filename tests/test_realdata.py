@@ -4,6 +4,7 @@ import pytest
 
 from config import BRISBANE_INPUTS, BRISBANE_PATH
 from src.realdata import load_brisbane
+from src.timeseries import segment_ids
 from src.wqi import BRISBANE, compute_wqi
 
 
@@ -67,3 +68,21 @@ def test_lstm_pipeline_on_real_data(brisbane_run):
     assert len(r["test_true"]) == len(r["test_pred"]) == len(r["test_persistence"]) == r["n_test"] > 500
     assert np.isfinite(list(r["lstm"].values())).all()
     assert 0 <= r["level_accuracy"] <= 1
+
+
+def test_real_series_has_gaps_that_windows_must_not_bridge():
+    ts = load_brisbane(freq="h")
+    seg = segment_ids(ts["date"])
+    assert seg.max() + 1 > 10                                  # many outages in the sensor record
+    assert ts["date"].diff().max() > pd.Timedelta(days=20)    # incl. a month-long one (Apr-May 2024)
+
+
+def test_real_pipeline_windows_are_continuous_and_dates_align(brisbane_run):
+    r = brisbane_run["results"]
+    assert r["n_segments"] > 10 and len(r["test_dates"]) == r["n_test"]
+    dates = pd.to_datetime(r["test_dates"])
+    assert dates.is_monotonic_increasing
+    ts = load_brisbane(freq="h").set_index("date")
+    for t in dates[::50]:                                      # sampled: the 24 h before each target are all present
+        window = ts.loc[t - pd.Timedelta(hours=24): t - pd.Timedelta(hours=1)]
+        assert len(window) == 24

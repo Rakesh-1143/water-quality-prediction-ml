@@ -69,13 +69,56 @@ def chronological_split(n, ratios=SPLIT):
     return i_train, i_val
 
 
-def make_windows(values, target, window):
-    """values (T, F), target (T,) -> X (T-window, window, F), y = target at the step after each window."""
+def segment_ids(dates, gap_factor=1.5):
+    """Id of the continuous run each row belongs to.
+
+    A new run starts after a gap longer than `gap_factor` x the typical time step, so data
+    recorded before and after a sensor outage is never joined into one window.
+    """
+    d = pd.Series(pd.to_datetime(dates)).reset_index(drop=True)
+    if len(d) < 2:
+        return np.zeros(len(d), dtype=int)
+    diff = d.diff()
+    return (diff > diff.median() * gap_factor).cumsum().to_numpy()
+
+
+def make_windows(values, target, window, segments=None, return_index=False):
+    """values (T, F), target (T,) -> X (n, window, F), y = target at the step after each window.
+
+    With `segments` (see `segment_ids`), only windows whose rows, including the target step,
+    all lie in the same continuous run are kept. `return_index` also returns the row index
+    of each target.
+    """
     if len(values) <= window:
         raise ValueError(f"Need more than {window} rows, got {len(values)}")
-    X = np.stack([values[i:i + window] for i in range(len(values) - window)])
-    y = target[window:]
-    return X.astype("float32"), y.astype("float32")
+    idx = np.arange(len(values) - window)
+    if segments is not None:
+        segments = np.asarray(segments)
+        idx = idx[segments[idx] == segments[idx + window]]
+        if len(idx) == 0:
+            raise ValueError(f"No continuous run of {window + 1} consecutive steps (data has gaps)")
+    X = np.stack([values[i:i + window] for i in idx]).astype("float32")
+    y = target[idx + window].astype("float32")
+    return (X, y, idx + window) if return_index else (X, y)
+
+
+def break_at_gaps(dates, *arrays, gap_factor=1.5):
+    """Insert NaN points where the record has a gap so a line plot does not bridge it."""
+    d = pd.Series(pd.to_datetime(dates)).reset_index(drop=True)
+    arrays = [np.asarray(a, dtype=float) for a in arrays]
+    if len(d) < 2:
+        return d, arrays
+    diff = d.diff()
+    step = diff.median()
+    starts = np.flatnonzero((diff > step * gap_factor).to_numpy())
+    new_d = d.copy()
+    new_arrays = [a.copy() for a in arrays]
+    for offset, g in enumerate(starts):
+        pos = g + offset
+        new_d = pd.concat([new_d.iloc[:pos], pd.Series([d[g - 1] + step]), new_d.iloc[pos:]],
+                          ignore_index=True)
+        new_arrays = [np.insert(a, pos, np.nan) for a in new_arrays]
+    return new_d, new_arrays
 
 
 def prepare_sequences(ts, window=LSTM_PARAMS["window"], ratios=SPLIT, profile=POTABILITY,
@@ -90,13 +133,15 @@ def prepare_sequences(ts, window=LSTM_PARAMS["window"], ratios=SPLIT, profile=PO
     i_train, i_val = chronological_split(n, ratios)
     scaler = MinMaxScaler().fit(ts[cols].iloc[:i_train])
     scaled = scaler.transform(ts[cols])
+    segments = segment_ids(ts["date"])
     wqi_idx = cols.index("wqi")
-    out = {"scaler": scaler, "cols": cols, "wqi_idx": wqi_idx}
+    out = {"scaler": scaler, "cols": cols, "wqi_idx": wqi_idx, "n_segments": int(segments.max()) + 1}
     bounds = {"train": (0, i_train), "val": (i_train - window, i_val), "test": (i_val - window, n)}
     for name, (a, b) in bounds.items():
-        X, y = make_windows(scaled[a:b], scaled[a:b, wqi_idx], window)
+        X, y, idx = make_windows(scaled[a:b], scaled[a:b, wqi_idx], window, segments[a:b], return_index=True)
         out[name] = (X, y)
-    out["dates_test"] = ts["date"].iloc[i_val:].reset_index(drop=True)
+        if name == "test":
+            out["dates_test"] = ts["date"].iloc[a + idx].reset_index(drop=True)
     return out
 
 
@@ -135,10 +180,18 @@ def predict_scaled_wqi(model, X, wqi_idx):
     return X[:, -1, wqi_idx] + model.predict(X, verbose=0).ravel()
 
 
-def forecast_next(model, scaler, cols, recent, window=LSTM_PARAMS["window"], profile=POTABILITY):
-    """Predict the WQI of the step after the last `window` rows of `recent` (DataFrame of input features)."""
+def forecast_next(model, scaler, cols, recent, window=LSTM_PARAMS["window"], profile=POTABILITY, dates=None):
+    """Predict the WQI of the step after the last `window` rows of `recent` (DataFrame of input features).
+
+    If `dates` (one per row) is given, the last `window` rows must be continuous (no gap).
+    """
     if len(recent) < window:
         raise ValueError(f"Need at least {window} rows, got {len(recent)}")
+    if dates is not None:
+        tail = pd.Series(pd.to_datetime(dates)).reset_index(drop=True)
+        seg = segment_ids(tail)
+        if seg[-window:].min() != seg[-window:].max():
+            raise ValueError(f"The last {window} rows contain a gap in time; provide {window} consecutive steps")
     features = [c for c in cols if c != "wqi"]
     recent = add_wqi(recent.iloc[-window:][features], profile)
     x = scaler.transform(recent[cols])[None].astype("float32")
