@@ -83,14 +83,14 @@ Multiclass WQI (4 balanced levels): hybrid accuracy 0.907, macro-F1 0.907 (ANN o
 - The Kaggle dataset has **no WQI column**. WQI is computed with the weighted-arithmetic method (`src/wqi.py`, WHO/EPA-style limits). Nearly all samples exceed the limits, so fixed cut-offs would give a single class; the four levels are WQI **quartiles** (relative levels). Since labels are a function of the same 9 features, high accuracy is expected and not comparable to the potability task.
 - The potability dataset has **no time column**, so the LSTM uses a second, **real** dataset: the Brisbane River water-quality buoy (30,894 readings every 10-30 min, Aug 2023 - Jun 2024; Queensland Government Open Data via Kaggle, Apache-2.0; `data/brisbane_river_water_quality.csv`). It is cleaned (sorted, 280 duplicate timestamps averaged, suspect-flag values masked, short gaps interpolated) and resampled to hourly means (6,229 steps). A WQI is computed from pH, dissolved oxygen, turbidity and chlorophyll (approximate ANZECC-style limits, an assumption you can change in `src/wqi.py`); temperature and specific conductance are extra inputs.
 
-Time-series result (chronological 70/15/15, test = last 15%, 935 hours):
+Time-series result (chronological 70/15/15, test = last 15%, 848 hourly windows):
 
 | Model | RMSE | MAE | R² |
 |---|---|---|---|
-| LSTM | 6.47 | 4.51 | 0.690 |
-| Persistence ("next hour = this hour") | 6.85 | 4.69 | 0.653 |
+| LSTM | 6.73 | 4.74 | 0.665 |
+| Persistence ("next hour = this hour") | 6.99 | 4.81 | 0.639 |
 
-The LSTM beats persistence by a modest margin. At **daily** resolution there are only 302 steps and the LSTM is about equal to persistence (R² 0.508 vs 0.491, 46 test days), so hourly is the default. Real sensor WQI is noisy, so do not expect a large gain. Use your own data with `python model/train_lstm.py --csv my.csv --profile potability` (columns: `date` + the 9 features).
+The sensor record has **42 gaps** (outages, one of about a month). Windows are only built inside continuous runs, so no input window or forecast target ever spans a gap, and the chart in the app is broken at gaps. The LSTM beats persistence by a modest margin. At **daily** resolution there are only 302 steps and the LSTM is about equal to persistence (R² 0.557 vs 0.538, 39 test days), so hourly is the default. Real sensor WQI is noisy, so do not expect a large gain. Use your own data with `python model/train_lstm.py --csv my.csv --profile potability` (columns: `date` + the 9 features).
 
 ---
 
@@ -119,7 +119,7 @@ pip install -r requirements-dev.txt
 python -m pytest tests -q
 ```
 
-The suite (83 tests) covers the split and preprocessing (no leakage), WQI formula, SHAP weights and initialisation, ANN/XGBoost/fusion, metrics, all three training scripts end to end, model save/load, that the saved models reproduce the reported metrics, the LSTM pipeline, and every Streamlit page (headless, with button clicks).
+The suite (90 tests) covers the split and preprocessing (no leakage), WQI formula, SHAP weights and initialisation, ANN/XGBoost/fusion, metrics, all three training scripts end to end, model save/load, that the saved models reproduce the reported metrics, the LSTM pipeline, and every Streamlit page (headless, with button clicks).
 
 ## App pages
 

@@ -57,8 +57,7 @@ def run_lstm_pipeline(ts=None, features=None, profile_name="potability", simulat
         level_accuracy_persistence=float(np.mean(level(persistence) == level(true))),
         cutoffs=cutoffs, n_test=len(true),
         loss_curve={k: [float(v) for v in hist.history[k]] for k in ("loss", "val_loss")},
-        test_dates=[str(d) for d in seq["dates_test"].iloc[:len(true)]]
-        if len(seq["dates_test"]) >= len(true) else [],
+        n_segments=seq["n_segments"], test_dates=[str(d) for d in seq["dates_test"]],
         test_true=true.tolist(), test_pred=pred.tolist(), test_persistence=persistence.tolist(),
     )
     return dict(model=model, scaler=scaler, cols=seq["cols"], results=results, seq=seq)

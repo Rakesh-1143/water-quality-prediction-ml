@@ -6,9 +6,9 @@ import pytest
 
 from config import FEATURES
 from src.pipeline_ts import load_lstm, save_lstm
-from src.timeseries import (add_wqi, chronological_split, clean_series, forecast_next,
-                            load_time_series, make_windows, prepare_sequences, simulate_series,
-                            to_delta)
+from src.timeseries import (add_wqi, break_at_gaps, chronological_split, clean_series, forecast_next,
+                            load_time_series, make_windows, prepare_sequences, segment_ids,
+                            simulate_series, to_delta)
 
 
 def test_simulated_series_is_deterministic_and_within_observed_range(df):
@@ -94,3 +94,63 @@ def test_csv_upload_path_roundtrip(df):
     csv = simulate_series(df, 40).to_csv(index=False)
     ts = clean_series(pd.read_csv(io.StringIO(csv)))
     assert len(ts) == 40 and pd.api.types.is_datetime64_any_dtype(ts["date"])
+
+
+def with_gap(df, after_row, days=20):
+    """Copy of a series where every row after `after_row` is shifted `days` later (a sensor outage)."""
+    ts = df.copy()
+    ts.loc[ts.index > after_row, "date"] += pd.Timedelta(days=days)
+    return ts
+
+
+def test_segment_ids_split_at_gaps():
+    dates = pd.to_datetime(["2024-01-01 00:00", "2024-01-01 01:00", "2024-01-01 02:00",
+                            "2024-01-05 00:00", "2024-01-05 01:00"])
+    assert segment_ids(dates).tolist() == [0, 0, 0, 1, 1]
+    assert segment_ids(dates[:1]).tolist() == [0]
+
+
+def test_make_windows_never_crosses_a_gap():
+    values = np.arange(20, dtype=float).reshape(10, 2)
+    target = np.arange(10, dtype=float)
+    segments = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+    X, y, idx = make_windows(values, target, 2, segments, return_index=True)
+    assert idx.tolist() == [2, 3, 4, 7, 8, 9]            # no window includes rows from both runs
+    assert y.tolist() == [2, 3, 4, 7, 8, 9]
+    for window, t in zip(X, idx):
+        assert window[:, 0].tolist() == [2 * (t - 2), 2 * (t - 1)]
+    with pytest.raises(ValueError):
+        make_windows(values, target, 5, np.arange(10))      # every row is its own run
+
+
+def test_prepare_sequences_skips_windows_that_span_a_gap(df):
+    ts = with_gap(simulate_series(df, 400), after_row=360)   # outage inside the test period
+    seq = prepare_sequences(ts, window=24)
+    dates = ts["date"]
+    assert len(seq["test"][0]) == 36                          # 21 before the gap + 15 after, 24 skipped
+    assert len(seq["dates_test"]) == 36
+    assert not seq["dates_test"].between(dates[361], dates[384]).any()
+    step = pd.Timedelta(days=1)
+    for t in seq["dates_test"]:                               # target's window is 24 consecutive days
+        assert (dates == t - 24 * step).any()
+        window_dates = dates[(dates >= t - 24 * step) & (dates < t)]
+        assert len(window_dates) == 24 and (window_dates.diff().dropna() == step).all()
+
+
+def test_break_at_gaps_inserts_nan_without_losing_points():
+    dates = pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-03", "2024-02-01", "2024-02-02"])
+    d, (a, b) = break_at_gaps(dates, [1, 2, 3, 4, 5], [5, 4, 3, 2, 1])
+    assert len(d) == 6 and np.isnan(a[3]) and np.isnan(b[3])
+    assert d[3] == pd.Timestamp("2024-01-04")
+    assert a[~np.isnan(a)].tolist() == [1, 2, 3, 4, 5]
+    d2, (c,) = break_at_gaps(dates[:3], [1, 2, 3])            # no gap -> unchanged
+    assert len(d2) == 3 and c.tolist() == [1, 2, 3]
+
+
+def test_forecast_rejects_a_window_with_a_gap(lstm_run, df):
+    ts = with_gap(simulate_series(df, 60), after_row=50)     # gap inside the last 14 rows
+    args = (lstm_run["model"], lstm_run["scaler"], lstm_run["cols"], ts[FEATURES], 14)
+    with pytest.raises(ValueError, match="gap"):
+        forecast_next(*args, dates=ts["date"])
+    ok = simulate_series(df, 60)
+    assert np.isfinite(forecast_next(*args, dates=ok["date"]))
