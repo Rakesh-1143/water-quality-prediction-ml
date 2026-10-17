@@ -1,0 +1,20 @@
+{
+  "window": 24,
+  "cutoffs": [
+    57.7197579510972,
+    66.87937597738613,
+    75.84280876419055
+  ],
+  "simulated": false,
+  "profile": "brisbane",
+  "features": [
+    "ph",
+    "dissolved_oxygen",
+    "turbidity",
+    "chlorophyll",
+    "temperature",
+    "specific_conductance"
+  ],
+  "freq": "h",
+  "dataset": "brisbane"
+}

@@ -1,92 +1,58 @@
-import sys
+"""Train the proposed hybrid model (SHAP-initialised ANN + XGBoost) for potable / not potable.
+
+Also trains the baselines (RF, SVR, ANN-Xavier, XGBoost) and runs the ablation and
+sensitivity studies of the IEEE paper. Usage: python model/train_model.py [--task potability|wqi] [--skip-sensitivity]
+"""
+import argparse
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import pickle
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score, GridSearchCV
-from sklearn.ensemble import RandomForestClassifier, StackingClassifier, GradientBoostingClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, classification_report
-from sklearn.preprocessing import StandardScaler
-from xgboost import XGBClassifier
-from imblearn.over_sampling import SMOTE
-from config import DATA_PATH, MODEL_PATH, TEST_SIZE, RANDOM_STATE, N_ESTIMATORS
+from config import ARTIFACT_DIR, RANDOM_STATE
+from src.artifacts import save_results
+from src.pipeline import perturbation_test, run_binary_pipeline, run_sensitivity
 
-# Load data
-df = pd.read_csv(DATA_PATH)
-df.fillna(df.mean(), inplace=True)
 
-# Feature engineering
-df["ph_hardness"] = df["ph"] * df["Hardness"]
-df["solids_conductivity"] = df["Solids"] / (df["Conductivity"] + 1)
-df["chloramines_trihalomethanes"] = df["Chloramines"] * df["Trihalomethanes"]
+def show(title, table):
+    print(f"\n{title}")
+    print(f"{'Model':<32}{'Acc':>7}{'Prec':>7}{'Rec':>7}{'F1':>7}{'AUC':>7}{'RMSE':>7}{'MAE':>7}")
+    for name, m in table.items():
+        print(f"{name:<32}{m['accuracy']:7.3f}{m['precision']:7.3f}{m['recall']:7.3f}"
+              f"{m['f1']:7.3f}{m['roc_auc']:7.3f}{m['rmse']:7.3f}{m['mae']:7.3f}")
 
-X = df.drop("Potability", axis=1)
-y = df["Potability"]
 
-# SMOTE
-smote = SMOTE(random_state=RANDOM_STATE)
-X_resampled, y_resampled = smote.fit_resample(X, y)
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--task", choices=["potability", "wqi"], default="potability",
+                        help="potability = Kaggle label; wqi = WQI-derived good/poor label")
+    parser.add_argument("--skip-sensitivity", action="store_true")
+    parser.add_argument("--out-dir", default=ARTIFACT_DIR, help="where to save trained files")
+    parser.add_argument("--epochs", type=int, default=None, help="override max epochs (quick runs)")
+    args = parser.parse_args()
 
-# Scale
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X_resampled)
+    out = run_binary_pipeline(seed=RANDOM_STATE, epochs=args.epochs, task=args.task)
+    bundle, results = out["bundle"], out["results"]
+    show("Model comparison (test set)", results["comparison"])
+    show("Ablation (test set)", results["ablation"])
+    show("Hybrid with stacking (test set)", {"Hybrid (stacking)": results["hybrid_stacking"]})
+    print(f"\nAlpha (validation-selected): {results['alpha']}")
+    print("SHAP ranking:", ", ".join(f"{k} {v:.3f}" for k, v in results["shap_importance"].items()))
 
-# Train test split
-X_train, X_test, y_train, y_test = train_test_split(
-    X_scaled, y_resampled, test_size=TEST_SIZE, random_state=RANDOM_STATE
-)
+    top3 = list(results["shap_importance"])[:3]
+    results["perturbation"] = perturbation_test(bundle, out["splits"].X_test,
+                                                out["splits"].y_test.values, top3)
+    print("Perturbation (+-10% on top-3 SHAP features):", results["perturbation"])
+    if not args.skip_sensitivity:
+        results["sensitivity"] = run_sensitivity(epochs=args.epochs, task=args.task)
+        s = results["sensitivity"]
+        print(f"5 random splits: accuracy {s['accuracy']['mean']:.3f} +- {s['accuracy']['std']:.3f}, "
+              f"F1 {s['f1']['mean']:.3f} +- {s['f1']['std']:.3f}")
 
-# GridSearchCV - Random Forest
-print("GridSearchCV running... (2-3 min)")
-rf_params = {
-    "n_estimators": [100, 200],
-    "max_depth": [10, 20, None],
-    "min_samples_split": [2, 5],
-}
-rf = RandomForestClassifier(random_state=RANDOM_STATE)
-rf_grid = GridSearchCV(rf, rf_params, cv=5, scoring="accuracy", n_jobs=-1)
-rf_grid.fit(X_train, y_train)
-print(f"Best RF Params: {rf_grid.best_params_}")
-print(f"Best RF CV Accuracy: {rf_grid.best_score_:.4f}")
+    bundle.save(args.out_dir)
+    save_results("binary" if args.task == "potability" else "wqibin", results, args.out_dir)
+    print(f"\nSaved model and results to {args.out_dir}")
 
-# GridSearchCV - XGBoost
-xgb_params = {
-    "n_estimators": [100, 200],
-    "max_depth": [3, 6],
-    "learning_rate": [0.05, 0.1],
-}
-xgb = XGBClassifier(random_state=RANDOM_STATE, eval_metric="logloss")
-xgb_grid = GridSearchCV(xgb, xgb_params, cv=5, scoring="accuracy", n_jobs=-1)
-xgb_grid.fit(X_train, y_train)
-print(f"Best XGB Params: {xgb_grid.best_params_}")
-print(f"Best XGB CV Accuracy: {xgb_grid.best_score_:.4f}")
 
-# Stacking Ensemble
-estimators = [
-    ("rf", rf_grid.best_estimator_),
-    ("xgb", xgb_grid.best_estimator_),
-    ("gb", GradientBoostingClassifier(n_estimators=100, random_state=RANDOM_STATE))
-]
-stacking = StackingClassifier(
-    estimators=estimators,
-    final_estimator=LogisticRegression(),
-    cv=5
-)
-stacking.fit(X_train, y_train)
-y_pred = stacking.predict(X_test)
-stack_acc = accuracy_score(y_test, y_pred)
-print(f"\nStacking Ensemble Test Accuracy: {stack_acc:.4f}")
-print(classification_report(y_test, y_pred))
-
-# Save best model + scaler
-with open(MODEL_PATH, "wb") as f:
-    pickle.dump(stacking, f)
-
-scaler_path = os.path.join(os.path.dirname(MODEL_PATH), "scaler.pkl")
-with open(scaler_path, "wb") as f:
-    pickle.dump(scaler, f)
-
-print("Model and scaler saved successfully")
+if __name__ == "__main__":
+    main()
