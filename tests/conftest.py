@@ -31,4 +31,10 @@ def multiclass_run(df):
 @pytest.fixture(scope="session")
 def lstm_run(df):
     from src.pipeline_ts import run_lstm_pipeline
-    return run_lstm_pipeline(df=df, epochs=2)
+    return run_lstm_pipeline(dataset="simulated", epochs=2)
+
+
+@pytest.fixture(scope="session")
+def brisbane_run():
+    from src.pipeline_ts import run_lstm_pipeline
+    return run_lstm_pipeline(dataset="brisbane", freq="h", epochs=2)

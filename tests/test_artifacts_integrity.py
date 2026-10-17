@@ -8,7 +8,7 @@ from src.data import split_data
 from src.metrics import binary_metrics
 from src.pipeline import make_wqi_labels
 from src.pipeline_ts import load_lstm
-from src.timeseries import forecast_next, simulate_series
+from src.timeseries import forecast_next
 
 pytestmark = pytest.mark.skipif(not BinaryBundle.exists(), reason="trained files missing")
 
@@ -44,7 +44,30 @@ def test_shap_weights_in_meta_match_paper_equation_3():
         assert sum(w.values()) == pytest.approx(1.0) and set(w) == set(FEATURES)
 
 
-def test_lstm_files_forecast(df):
+def test_lstm_files_reproduce_reported_metrics():
+    """Re-run inference on the real Brisbane data with the saved LSTM and compare to results_lstm.json."""
+    from src.metrics import regression_metrics
+    from src.realdata import load_brisbane
+    from src.timeseries import inverse_wqi, predict_scaled_wqi, prepare_sequences
+    from src.wqi import PROFILES
+    b, res = load_lstm(), load_results("lstm")
+    assert b["simulated"] is False and res["simulated"] is False and b["dataset"] == "brisbane"
+    ts = load_brisbane(freq=b["freq"])
+    seq = prepare_sequences(ts, b["window"], profile=PROFILES[b["profile"]], features=b["features"])
+    X, y = seq["test"]
+    wi = seq["wqi_idx"]
+    pred = inverse_wqi(b["scaler"], wi, predict_scaled_wqi(b["model"], X, wi))
+    true = inverse_wqi(b["scaler"], wi, y)
+    m = regression_metrics(true, pred)
+    assert m["rmse"] == pytest.approx(res["lstm"]["rmse"], abs=1e-3)
+    assert m["r2"] == pytest.approx(res["lstm"]["r2"], abs=1e-3)
+    assert len(true) == res["n_test"]
+
+
+def test_lstm_files_forecast_from_real_window():
+    from src.realdata import load_brisbane
     b = load_lstm()
-    value = forecast_next(b["model"], b["scaler"], b["cols"], simulate_series(df, 40)[FEATURES], b["window"])
-    assert np.isfinite(value)
+    ts = load_brisbane(freq=b["freq"])
+    value = forecast_next(b["model"], b["scaler"], b["cols"], ts[b["features"]].tail(b["window"]),
+                          b["window"], __import__("src.wqi", fromlist=["PROFILES"]).PROFILES[b["profile"]])
+    assert np.isfinite(value) and 30 < value < 120

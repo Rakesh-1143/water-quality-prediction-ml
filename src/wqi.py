@@ -24,15 +24,45 @@ _inv = np.array([1.0 / STANDARDS[f] for f in FEATURES])
 WEIGHTS = dict(zip(FEATURES, _inv / _inv.sum()))
 
 
-def compute_wqi(X):
-    """WQI for a DataFrame of raw (imputed) features. Returns a float Series."""
-    if X[FEATURES].isna().any().any():
-        raise ValueError("compute_wqi needs imputed data (no NaN)")
-    total = 0.0
-    for f in FEATURES:
-        q = (X[f] - IDEAL[f]).abs() / (STANDARDS[f] - IDEAL[f]) * 100.0
-        total = total + WEIGHTS[f] * q
-    return total.astype(float)
+class WQIProfile:
+    """Weighted-arithmetic WQI for a set of parameters: limits S_i and ideal values V_i."""
+
+    def __init__(self, name, standards, ideal):
+        self.name = name
+        self.standards = dict(standards)
+        self.ideal = dict(ideal)
+        self.features = list(self.standards)
+        inv = np.array([1.0 / self.standards[f] for f in self.features])  # w_i proportional to 1/S_i
+        self.weights = dict(zip(self.features, inv / inv.sum()))
+
+    def compute(self, X):
+        """WQI for a DataFrame of raw (imputed) parameters. Returns a float Series."""
+        if X[self.features].isna().any().any():
+            raise ValueError("compute_wqi needs imputed data (no NaN)")
+        total = 0.0
+        for f in self.features:
+            q = (X[f] - self.ideal[f]).abs() / abs(self.standards[f] - self.ideal[f]) * 100.0
+            total = total + self.weights[f] * q
+        return total.astype(float)
+
+
+POTABILITY = WQIProfile("potability", STANDARDS, IDEAL)
+
+# Estuarine river buoy (Brisbane dataset). Limits are approximate ANZECC-style trigger values for
+# south-east Australian estuaries (assumption, adjust if your guideline differs):
+# pH <= 8.5 (ideal 7), dissolved oxygen >= 5 mg/L (ideal = saturation ~ 14.6 mg/L at 0 C scale),
+# turbidity <= 10 NTU, chlorophyll-a <= 4 ug/L.
+BRISBANE = WQIProfile(
+    "brisbane",
+    {"ph": 8.5, "dissolved_oxygen": 5.0, "turbidity": 10.0, "chlorophyll": 4.0},
+    {"ph": 7.0, "dissolved_oxygen": 14.6, "turbidity": 0.0, "chlorophyll": 0.0},
+)
+PROFILES = {"potability": POTABILITY, "brisbane": BRISBANE}
+
+
+def compute_wqi(X, profile=POTABILITY):
+    """WQI for a DataFrame of raw (imputed) parameters. Returns a float Series."""
+    return profile.compute(X)
 
 
 def quartile_cutoffs(wqi):

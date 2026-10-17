@@ -33,7 +33,7 @@ Implements the method of *Al Bataineh, Vamsi & Smith, "A Hybrid Machine Learning
 |---|---|
 | Potable / not potable | ANN (9-16-8-1, ReLU, dropout 0.2, Adam 1e-3) whose first-layer weights are scaled by normalised SHAP importance + XGBoost, fused by weighted average (alpha chosen on validation set from 0.3-0.7); stacking also available |
 | Multiclass WQI (4 levels) | Same SHAP-initialised ANN (softmax) + XGBoost (multi:softprob) |
-| Time series | LSTM (64 units) predicting the next-step WQI from the last 14 steps |
+| Time series | LSTM (64 units) predicting the next-hour WQI from the last 24 hours, on **real** Brisbane River buoy data |
 
 **Pipeline (no data leakage):** stratified 70/15/15 split first, then median imputation and min-max scaling fitted on the training part only. Early stopping (patience 10) on validation loss.
 
@@ -68,7 +68,16 @@ Multiclass WQI (4 balanced levels): hybrid accuracy 0.907, macro-F1 0.907 (ANN o
 
 **Important notes**
 - The Kaggle dataset has **no WQI column**. WQI is computed with the weighted-arithmetic method (`src/wqi.py`, WHO/EPA-style limits). Nearly all samples exceed the limits, so fixed cut-offs would give a single class; the four levels are WQI **quartiles** (relative levels). Since labels are a function of the same 9 features, high accuracy is expected and not comparable to the potability task.
-- The dataset has **no time column**. The bundled LSTM is trained on a **simulated** daily series (seasonality + AR(1) noise around the real feature ranges): R² 0.832, about equal to the "tomorrow = today" persistence baseline (0.832). It demonstrates the pipeline only. Train on real data with `python model/train_lstm.py --csv your_series.csv` (columns: `date` + the 9 features).
+- The potability dataset has **no time column**, so the LSTM uses a second, **real** dataset: the Brisbane River water-quality buoy (30,894 readings every 10-30 min, Aug 2023 - Jun 2024; Queensland Government Open Data via Kaggle, Apache-2.0; `data/brisbane_river_water_quality.csv`). It is cleaned (sorted, 280 duplicate timestamps averaged, suspect-flag values masked, short gaps interpolated) and resampled to hourly means (6,229 steps). A WQI is computed from pH, dissolved oxygen, turbidity and chlorophyll (approximate ANZECC-style limits, an assumption you can change in `src/wqi.py`); temperature and specific conductance are extra inputs.
+
+Time-series result (chronological 70/15/15, test = last 15%, 935 hours):
+
+| Model | RMSE | MAE | R² |
+|---|---|---|---|
+| LSTM | 6.47 | 4.51 | 0.690 |
+| Persistence ("next hour = this hour") | 6.85 | 4.69 | 0.653 |
+
+The LSTM beats persistence by a modest margin. At **daily** resolution there are only 302 steps and the LSTM is about equal to persistence (R² 0.508 vs 0.491, 46 test days), so hourly is the default. Real sensor WQI is noisy, so do not expect a large gain. Use your own data with `python model/train_lstm.py --csv my.csv --profile potability` (columns: `date` + the 9 features).
 
 ---
 
@@ -87,7 +96,7 @@ The trained models are included in `model/artifacts/`. Retrain with:
 ```bash
 python model/train_model.py        # binary hybrid + baselines + ablation + sensitivity (~2-3 min)
 python model/train_multiclass.py   # 4-level WQI
-python model/train_lstm.py         # LSTM forecaster
+python model/train_lstm.py         # LSTM forecaster (real Brisbane data, hourly)
 ```
 
 ## Run the tests
@@ -97,7 +106,7 @@ pip install -r requirements-dev.txt
 python -m pytest tests -q
 ```
 
-The suite (65+ tests) covers the split and preprocessing (no leakage), WQI formula, SHAP weights and initialisation, ANN/XGBoost/fusion, metrics, all three training scripts end to end, model save/load, that the saved models reproduce the reported metrics, the LSTM pipeline, and every Streamlit page (headless, with button clicks).
+The suite (77 tests) covers the split and preprocessing (no leakage), WQI formula, SHAP weights and initialisation, ANN/XGBoost/fusion, metrics, all three training scripts end to end, model save/load, that the saved models reproduce the reported metrics, the LSTM pipeline, and every Streamlit page (headless, with button clicks).
 
 ## App pages
 
@@ -107,7 +116,7 @@ The suite (65+ tests) covers the split and preprocessing (no leakage), WQI formu
 | EDA | Overview, class balance, missing values, distributions, IQR outliers, correlations |
 | Prediction | 9 sliders -> potable / not potable, confidence, NN and XGBoost outputs, SHAP explanation |
 | Multiclass WQI | WQI value and level by formula, model-predicted level, class probabilities, SHAP |
-| Time Series | LSTM test-period plot and next-step forecast from an uploaded CSV |
+| Time Series | LSTM test-period plot vs persistence, and next-hour forecast from an uploaded CSV |
 | Model Performance | Comparison, ablation, ROC, loss curve, SHAP ranking, stability |
 
 ## Project Structure
@@ -115,11 +124,11 @@ The suite (65+ tests) covers the split and preprocessing (no leakage), WQI formu
 ```
 config.py                 settings and hyperparameters (paper Table VIII)
 src/                      data.py, wqi.py, shap_init.py, nn_models.py, hybrid.py, metrics.py,
-                          pipeline.py, timeseries.py, pipeline_ts.py, artifacts.py, ui.py
+                          pipeline.py, timeseries.py, pipeline_ts.py, realdata.py, artifacts.py, ui.py
 model/                    train_model.py, train_multiclass.py, train_lstm.py, artifacts/ (trained files)
 app/                      app.py and pages/
 tests/                    pytest suite
-data/water_potability.csv Kaggle dataset
+data/                     water_potability.csv (Kaggle), brisbane_river_water_quality.csv (real time series)
 notebooks/eda.ipynb       EDA notebook
 ```
 
@@ -135,6 +144,7 @@ Python, pandas, NumPy, scikit-learn, XGBoost, SHAP, TensorFlow/Keras, Streamlit,
 
 - Dataset: [Kaggle Water Potability Dataset](https://www.kaggle.com/adityakadiwal/water-potability)
 - Al Bataineh, Vamsi, Smith (IEEE JSTARS 2026) for the hybrid framework
+- Brisbane River buoy data: Queensland Government Open Data Portal (Colmslie site), Apache-2.0, via [Kaggle](https://www.kaggle.com/datasets/downshift/water-quality-monitoring-dataset)
 - Scikit-learn, XGBoost, SHAP, TensorFlow, and Streamlit communities
 
 ---

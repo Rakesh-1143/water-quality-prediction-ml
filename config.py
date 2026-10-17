@@ -34,4 +34,11 @@ WQI_CLASSES = ["Excellent", "Good", "Poor", "Very Poor"]
 # LSTM time-series model
 LSTM_PARAMS = dict(window=14, units=64, dropout=0.2, learning_rate=1e-3,
                    epochs=60, batch_size=32, patience=8)
-SIM_STEPS = 1500  # length of the simulated demo series
+SIM_STEPS = 1500  # length of the simulated series (tests / demos only)
+
+# Real time-series data: Brisbane River buoy (Queensland Government Open Data, Apache-2.0)
+BRISBANE_PATH = os.path.join(BASE_DIR, "data", "brisbane_river_water_quality.csv")
+BRISBANE_WQI_PARAMS = ["ph", "dissolved_oxygen", "turbidity", "chlorophyll"]
+BRISBANE_INPUTS = BRISBANE_WQI_PARAMS + ["temperature", "specific_conductance"]
+TS_WINDOWS = {"D": 7, "h": 24}
+TS_DEFAULT_FREQ = "h"  # hourly: 6,229 steps (daily has only 302, too few for an LSTM)  # look-back window per resample frequency

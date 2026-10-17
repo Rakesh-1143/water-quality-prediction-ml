@@ -76,9 +76,10 @@ def test_multiclass_page_formula_and_model():
     assert float(at.metric[0].value) > wqi_default    # more sulfate -> worse (higher) WQI
 
 
-def test_time_series_page_shows_simulated_warning_and_metrics():
+def test_time_series_page_shows_real_data_notice_and_metrics():
     at = page("app/pages/4_Time_Series.py")
-    assert any("simulated" in w.value.lower() for w in at.warning)
+    assert not at.warning                                    # no "simulated" warning for real data
+    assert any("real" in i.value.lower() and "Brisbane" in i.value for i in at.info)
     assert len(at.metric) == 3
 
 

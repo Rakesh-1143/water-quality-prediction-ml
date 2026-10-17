@@ -1,9 +1,8 @@
 """LSTM time-series forecasting of the next-step WQI (thesis abstract, time-series extension).
 
-The Kaggle dataset has NO time column. `simulate_series` therefore builds a clearly labelled
-SIMULATED daily series (seasonality + AR(1) noise around the real feature statistics) so the
-LSTM pipeline can be developed and tested. Real monitoring data (CSV with a `date` column and
-the 9 features) can be used instead via `load_time_series`.
+The Kaggle potability dataset has NO time column, so the default real series is the Brisbane
+River buoy data (`src/realdata.py`). Any CSV with a `date` column plus the profile's input
+features works too. `simulate_series` builds a clearly labelled SIMULATED series for tests only.
 """
 import numpy as np
 import pandas as pd
@@ -11,7 +10,7 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow import keras
 
 from config import FEATURES, LSTM_PARAMS, RANDOM_STATE, SIM_STEPS, SPLIT
-from src.wqi import compute_wqi
+from src.wqi import POTABILITY, compute_wqi
 
 
 def simulate_series(df, n_steps=SIM_STEPS, seed=RANDOM_STATE):
@@ -33,33 +32,33 @@ def simulate_series(df, n_steps=SIM_STEPS, seed=RANDOM_STATE):
     return out
 
 
-def load_time_series(path=None, df=None, n_steps=SIM_STEPS, seed=RANDOM_STATE):
-    """Read a user CSV (date + 9 features) or fall back to the simulated series.
+def load_time_series(path=None, df=None, n_steps=SIM_STEPS, seed=RANDOM_STATE, features=FEATURES):
+    """Read a user CSV (date + features) or fall back to the simulated series.
 
-    Returns (series, is_simulated). Rows are sorted by date; missing values are filled by
-    time interpolation then median.
+    Returns (series, is_simulated).
     """
     if path is None:
         return simulate_series(df, n_steps, seed), True
-    ts = pd.read_csv(path) if isinstance(path, str) else pd.read_csv(path)
-    return clean_series(ts), False
+    return clean_series(pd.read_csv(path), features), False
 
 
-def clean_series(ts):
-    missing = [c for c in ["date"] + FEATURES if c not in ts.columns]
+def clean_series(ts, features=FEATURES):
+    """Sort by date, keep date + features; fill gaps by interpolation, then by the median."""
+    features = list(features)
+    missing = [c for c in ["date"] + features if c not in ts.columns]
     if missing:
         raise ValueError(f"Missing columns: {missing}")
-    ts = ts[["date"] + FEATURES].copy()
+    ts = ts[["date"] + features].copy()
     ts["date"] = pd.to_datetime(ts["date"])
     ts = ts.sort_values("date").reset_index(drop=True)
-    ts[FEATURES] = ts[FEATURES].interpolate(limit_direction="both")
-    ts[FEATURES] = ts[FEATURES].fillna(ts[FEATURES].median())
+    ts[features] = ts[features].interpolate(limit_direction="both")
+    ts[features] = ts[features].fillna(ts[features].median())
     return ts
 
 
-def add_wqi(ts):
+def add_wqi(ts, profile=POTABILITY):
     ts = ts.copy()
-    ts["wqi"] = compute_wqi(ts[FEATURES])
+    ts["wqi"] = compute_wqi(ts, profile)
     return ts
 
 
@@ -79,13 +78,14 @@ def make_windows(values, target, window):
     return X.astype("float32"), y.astype("float32")
 
 
-def prepare_sequences(ts, window=LSTM_PARAMS["window"], ratios=SPLIT):
+def prepare_sequences(ts, window=LSTM_PARAMS["window"], ratios=SPLIT, profile=POTABILITY,
+                      features=FEATURES):
     """Scale with train-only statistics and build windowed train/val/test sets.
 
-    Inputs per step = 9 features + WQI. Target = next-step WQI.
+    Inputs per step = `features` + WQI. Target = next-step WQI.
     """
-    ts = add_wqi(ts)
-    cols = FEATURES + ["wqi"]
+    ts = add_wqi(ts, profile)
+    cols = list(features) + ["wqi"]
     n = len(ts)
     i_train, i_val = chronological_split(n, ratios)
     scaler = MinMaxScaler().fit(ts[cols].iloc[:i_train])
@@ -135,11 +135,12 @@ def predict_scaled_wqi(model, X, wqi_idx):
     return X[:, -1, wqi_idx] + model.predict(X, verbose=0).ravel()
 
 
-def forecast_next(model, scaler, cols, recent, window=LSTM_PARAMS["window"]):
-    """Predict the WQI of the step after the last `window` rows of `recent` (DataFrame of 9 features)."""
+def forecast_next(model, scaler, cols, recent, window=LSTM_PARAMS["window"], profile=POTABILITY):
+    """Predict the WQI of the step after the last `window` rows of `recent` (DataFrame of input features)."""
     if len(recent) < window:
         raise ValueError(f"Need at least {window} rows, got {len(recent)}")
-    recent = add_wqi(recent.assign(date=0).iloc[-window:][["date"] + FEATURES])
+    features = [c for c in cols if c != "wqi"]
+    recent = add_wqi(recent.iloc[-window:][features], profile)
     x = scaler.transform(recent[cols])[None].astype("float32")
     pred = predict_scaled_wqi(model, x, cols.index("wqi"))
     return float(inverse_wqi(scaler, cols.index("wqi"), pred)[0])
