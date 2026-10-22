@@ -14,6 +14,9 @@ PALETTES = {
     "Ocean": dict(primary="#0284c7", primary2="#06b6d4", accent="#f97316", ink="#0b2a3b", muted="#4a6b7c",
                   bg1="#f3faff", bg2="#dff3fb", blob1="rgba(14,165,233,.30)", blob2="rgba(6,182,212,.26)",
                   hue="0", scene="waves", warm="#f97316"),
+    "Blue": dict(primary="#1d4ed8", primary2="#3b82f6", accent="#f59e0b", ink="#0b1b3a", muted="#4a5d85",
+                 bg1="#f3f7ff", bg2="#dbe7ff", blob1="rgba(37,99,235,.28)", blob2="rgba(56,189,248,.24)",
+                 hue="22", scene="rings", warm="#f59e0b"),
     "Lagoon": dict(primary="#0f766e", primary2="#22c55e", accent="#f59e0b", ink="#0a2e2a", muted="#46685f",
                    bg1="#f2fcf8", bg2="#dcf5ea", blob1="rgba(16,185,129,.28)", blob2="rgba(45,212,191,.26)",
                    hue="-25", scene="orbs", warm="#f59e0b"),
@@ -198,6 +201,11 @@ _SCENE_JS = r"""
   pts.forEach(p=>{const q=rot(p[0]*R,p[1]*R,p[2]*R,ax,ay);const o=pr(q[0],q[1],q[2]+260,440,W*.8,H*.5);out.push([o[0],o[1],o[2],q[2],p[3]]);});
   out.sort((a,b)=>b[3]-a[3]);out.forEach(o=>dot(o[0],o[1],2.6*o[2],P[o[4]],Math.max(.15,Math.min(1,o[2]*.85))));
   for(let r=0;r<3;r++){for(let k=0;k<90;k++){const a=k/90*6.2832+t*(.5+r*.2);const q=rot(Math.cos(a)*(165+r*34),0,Math.sin(a)*(165+r*34),ax+.9+r*.35,ay*.4);const o=pr(q[0],q[1],q[2]+260,440,W*.8,H*.5);dot(o[0],o[1],1.8*o[2],'#fff',.45*o[2]);}}},
+ rings(){const ax=.5+my*.5+sy*.0006,ay=t*.3+mx*.8,cx=W*.8,cy=H*.5;
+  const g=ctx.createRadialGradient(cx,cy,0,cx,cy,70);g.addColorStop(0,'rgba(255,255,255,.55)');g.addColorStop(1,'rgba(255,255,255,0)');ctx.globalAlpha=1;ctx.fillStyle=g;ctx.fillRect(cx-70,cy-70,140,140);
+  const items=[];for(let r=0;r < 5;r++){const R=58+r*27,tx=ax+r*.55+Math.sin(t*.4+r)*.3,ty=ay*(1+r*.25)+t*.18*r;
+   for(let k=0;k < 110;k++){const a=k/110*6.2832,q=rot(Math.cos(a)*R,0,Math.sin(a)*R,tx,ty),o=pr(q[0],q[1],q[2]+260,460,cx,cy);items.push([o,r,q[2]]);}}
+  items.sort((a,b)=>b[2]-a[2]);items.forEach(it=>dot(it[0][0],it[0][1],2.6*it[0][2],P[it[1]%3],Math.max(.2,Math.min(1,it[0][2]*.9))));},
  helix(){const n=70,ay=t*.5+mx*.8,ax=.35+my*.4+sy*.0005;const items=[];
   for(let i=0;i<n;i++){const y=(i/n-.5)*330,a=i*.34+t;for(let s=0;s<2;s++){const ph=a+s*Math.PI,q=rot(Math.cos(ph)*84,y,Math.sin(ph)*84,ax,ay);const o=pr(q[0],q[1],q[2]+260,460,W*.8,H*.5);items.push([o,s,i,q[2]]);}
    if(i%2===0){const q1=rot(Math.cos(a)*84,y,Math.sin(a)*84,ax,ay),q2=rot(Math.cos(a+Math.PI)*84,y,Math.sin(a+Math.PI)*84,ax,ay);const o1=pr(q1[0],q1[1],q1[2]+260,460,W*.8,H*.5),o2=pr(q2[0],q2[1],q2[2]+260,460,W*.8,H*.5);

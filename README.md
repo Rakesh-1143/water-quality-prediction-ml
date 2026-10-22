@@ -98,14 +98,18 @@ The sensor record has **42 gaps** (outages, one of about a month). Windows are o
 
 The app has its own design system (`src/theme.py`, plain CSS + vanilla JS, no external assets, respects `prefers-reduced-motion`):
 
-- **Three visual themes** you can switch in the sidebar (kept across pages): **Ocean** (animated 3D wave surface), **Lagoon** (rotating 3D droplet sphere with orbit rings), **Aurora** (3D double helix). Each has its own palette, hero scene, charts and accent colours.
+- **Four visual themes** you can switch in the sidebar (kept across pages): **Ocean** (animated 3D wave surface), **Blue** (3D gyroscope of rotating rings), **Lagoon** (rotating 3D droplet sphere with orbit rings), **Aurora** (3D double helix). Each has its own palette, hero scene, charts and accent colours.
 - **3D**: canvas scenes with a perspective projection that react to the mouse and to scrolling; cards tilt in 3D and follow the pointer with a light glare; the predicted WQI level lifts out of a 3D ladder.
 - **Scroll animations**: a scroll-progress bar, staggered reveal of every block as it enters the view, an animated pipeline timeline, bars that grow when scrolled into view, and a ring gauge that fills.
 - **Smooth motion**: page-entry animation, floating background blobs, glass cards, button shine and lift, smooth scrolling.
 
-| Ocean | Lagoon | Aurora |
-|---|---|---|
-| ![Ocean](docs/screens/home-ocean.jpg) | ![Lagoon](docs/screens/home-lagoon.jpg) | ![Aurora](docs/screens/home-aurora.jpg) |
+| Ocean | Blue |
+|---|---|
+| ![Ocean](docs/screens/home-ocean.jpg) | ![Blue](docs/screens/home-blue.jpg) |
+
+| Lagoon | Aurora |
+|---|---|
+| ![Lagoon](docs/screens/home-lagoon.jpg) | ![Aurora](docs/screens/home-aurora.jpg) |
 
 | Prediction | Multiclass WQI | Model Performance |
 |---|---|---|
@@ -140,7 +144,7 @@ python -m pytest tests -q
 
 The real-browser animation tests (`tests/test_design_e2e.py`) need Playwright and a Chromium (set `WQ_CHROMIUM` to its path); they are skipped otherwise.
 
-The suite (125 tests) covers the split and preprocessing (no leakage), WQI formula, SHAP weights and initialisation, ANN/XGBoost/fusion, metrics, all three training scripts end to end, model save/load, that the saved models reproduce the reported metrics, the LSTM pipeline, and every Streamlit page (headless, with button clicks).
+The suite (133 tests) covers the split and preprocessing (no leakage), WQI formula, SHAP weights and initialisation, ANN/XGBoost/fusion, metrics, all three training scripts end to end, model save/load, that the saved models reproduce the reported metrics, the LSTM pipeline, and every Streamlit page (headless, with button clicks).
 
 ## App pages
 

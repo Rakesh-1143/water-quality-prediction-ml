@@ -28,15 +28,16 @@ def test_palette_is_complete_and_css_has_no_unfilled_tokens(name):
     p = theme.PALETTES[name]
     css = theme._css(p)
     assert not re.findall(r"__[a-z0-9]+__", css)
-    assert p["scene"] in ("waves", "orbs", "helix")
+    assert p["scene"] in ("waves", "orbs", "helix", "rings")
     for key in ("primary", "primary2", "accent", "ink", "bg1", "bg2"):
         assert p[key].startswith("#")
     assert "prefers-reduced-motion" in css                      # motion can be switched off
 
 
 def test_each_theme_uses_a_different_scene_and_colour():
-    assert len({p["scene"] for p in theme.PALETTES.values()}) == 3
-    assert len({p["primary"] for p in theme.PALETTES.values()}) == 3
+    assert len(theme.PALETTES) == 4 and "Blue" in theme.PALETTES
+    assert len({p["scene"] for p in theme.PALETTES.values()}) == 4
+    assert len({p["primary"] for p in theme.PALETTES.values()}) == 4
 
 
 def test_safe_js_has_no_tag_like_less_than_and_keeps_meaning():
@@ -46,7 +47,7 @@ def test_safe_js_has_no_tag_like_less_than_and_keeps_meaning():
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
-@pytest.mark.parametrize("scene", ["waves", "orbs", "helix"])
+@pytest.mark.parametrize("scene", ["waves", "orbs", "helix", "rings"])
 def test_javascript_is_syntactically_valid(scene, tmp_path):
     scene_js = (theme._SCENE_JS.replace("__ID__", "c1").replace("__SCENE__", scene)
                 .replace("__C1__", "#fff").replace("__C2__", "#fff").replace("__C3__", "#fff"))
