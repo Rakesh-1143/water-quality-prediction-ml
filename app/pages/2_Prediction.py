@@ -4,11 +4,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 
 import streamlit as st
 
+from src import theme
 from src.ui import binary_bundle, feature_sliders, require, shap_bar, wqibin_bundle
 from src.wqi import compute_wqi
 
 st.set_page_config(page_title="Prediction", page_icon="🔬", layout="wide")
-st.title("Water Quality Prediction")
+theme.apply()
+theme.hero("Hybrid SHAP-ANN + XGBoost", "Water Quality Prediction",
+           "Adjust the nine water parameters in the sidebar and get an explained verdict.", height=250)
 
 TASKS = ["Kaggle potability label", "WQI-based good / poor"]
 task = st.sidebar.radio("Prediction task", TASKS, key="task")
@@ -47,6 +50,7 @@ with col2:
 
         good, bad = ("Water quality is GOOD (low WQI)", "Water quality is POOR (high WQI)") if wqi_task \
             else ("Water is Safe for Drinking", "Water is NOT Safe for Drinking")
+        theme.gauge(max(p, 1 - p), "model confidence")
         if p >= 0.5:
             st.success(good)
         else:

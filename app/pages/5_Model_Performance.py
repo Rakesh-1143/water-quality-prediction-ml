@@ -6,10 +6,13 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 
+from src import theme
 from src.ui import require, results
 
 st.set_page_config(page_title="Model Performance", page_icon="🏆", layout="wide")
-st.title("🏆 Model Performance")
+theme.apply()
+theme.hero("Evaluation", "Model Performance",
+           "Hybrid vs baselines, ablation, ROC curves, SHAP ranking and stability on a held-out test set.", height=250)
 
 binary = require(results("binary"), "train_model.py")
 NAMES = {"accuracy": "Accuracy", "precision": "Precision", "recall": "Recall", "f1": "F1",
@@ -25,6 +28,7 @@ t1, t2, t3, t4, t5 = st.tabs(["Comparison", "Ablation", "ROC & Loss", "SHAP", "S
 
 with t1:
     st.subheader("Proposed hybrid vs baselines")
+    theme.leaderboard({k: v["accuracy"] for k, v in binary["comparison"].items()})
     st.dataframe(table(binary["comparison"]))
     st.write(f"Weighted-average α selected on validation set: **{binary['alpha']}**")
     st.subheader("Hybrid fusion: weighted average vs stacking")
@@ -50,7 +54,7 @@ with t3:
 with t4:
     imp = pd.DataFrame({"Mean |SHAP|": binary["shap_importance"], "Initial weight W_i": binary["shap_weights"]})
     st.dataframe(imp.round(4))
-    st.bar_chart(imp["Mean |SHAP|"])
+    st.bar_chart(imp["Mean |SHAP|"], color=theme.colors()[0])
 
 with t5:
     if "sensitivity" in binary:

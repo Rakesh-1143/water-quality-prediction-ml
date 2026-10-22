@@ -6,12 +6,15 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 
+from src import theme
 from src.timeseries import break_at_gaps, clean_series, forecast_next
 from src.ui import lstm_bundle, require, results
 from src.wqi import PROFILES, class_name, classify_wqi
 
 st.set_page_config(page_title="Time Series", page_icon="📈", layout="wide")
-st.title("📈 Time-Series WQI Forecast (LSTM)")
+theme.apply()
+theme.hero("LSTM · real sensor data", "Time-Series WQI Forecast",
+           "One-hour-ahead water quality index forecast on the Brisbane River buoy record.", height=250)
 
 bundle = require(lstm_bundle(), "train_lstm.py")
 res = results("lstm")

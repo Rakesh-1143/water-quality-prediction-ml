@@ -6,11 +6,15 @@ import pandas as pd
 import streamlit as st
 
 from config import WQI_CLASSES
+from src import theme
 from src.ui import feature_sliders, multiclass_bundle, require, shap_bar
 from src.wqi import STANDARDS, classify_wqi, compute_wqi
 
 st.set_page_config(page_title="Multiclass WQI", page_icon="🏷️", layout="wide")
-st.title("🏷️ Multiclass Water Quality Index")
+theme.apply()
+theme.hero("Four quality levels", "Multiclass Water Quality Index",
+           "Weighted-arithmetic WQI turned into Excellent / Good / Poor / Very Poor, predicted by the hybrid model.",
+           height=250)
 st.caption("Four relative quality levels from the weighted-arithmetic WQI (lower WQI = better water). "
            "The Kaggle data has no WQI label, so levels are WQI quartiles.")
 
@@ -34,7 +38,8 @@ with col2:
     if st.button("Predict level", use_container_width=True):
         proba = bundle.predict_proba(X)[0]
         level = int(proba.argmax())
+        theme.ladder(WQI_CLASSES, level)
         st.success(f"Predicted level: {WQI_CLASSES[level]}  ({proba[level]:.1%})")
-        st.bar_chart(pd.Series(proba, index=WQI_CLASSES, name="Probability"))
+        st.bar_chart(pd.Series(proba, index=WQI_CLASSES, name="Probability"), color=theme.colors()[0])
         st.pyplot(shap_bar(bundle.explain(X)[0, :, level],
                            f"SHAP for class '{WQI_CLASSES[level]}'"))

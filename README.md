@@ -94,6 +94,25 @@ The sensor record has **42 gaps** (outages, one of about a month). Windows are o
 
 ---
 
+## Design
+
+The app has its own design system (`src/theme.py`, plain CSS + vanilla JS, no external assets, respects `prefers-reduced-motion`):
+
+- **Three visual themes** you can switch in the sidebar (kept across pages): **Ocean** (animated 3D wave surface), **Lagoon** (rotating 3D droplet sphere with orbit rings), **Aurora** (3D double helix). Each has its own palette, hero scene, charts and accent colours.
+- **3D**: canvas scenes with a perspective projection that react to the mouse and to scrolling; cards tilt in 3D and follow the pointer with a light glare; the predicted WQI level lifts out of a 3D ladder.
+- **Scroll animations**: a scroll-progress bar, staggered reveal of every block as it enters the view, an animated pipeline timeline, bars that grow when scrolled into view, and a ring gauge that fills.
+- **Smooth motion**: page-entry animation, floating background blobs, glass cards, button shine and lift, smooth scrolling.
+
+| Ocean | Lagoon | Aurora |
+|---|---|---|
+| ![Ocean](docs/screens/home-ocean.jpg) | ![Lagoon](docs/screens/home-lagoon.jpg) | ![Aurora](docs/screens/home-aurora.jpg) |
+
+| Prediction | Multiclass WQI | Model Performance |
+|---|---|---|
+| ![Prediction](docs/screens/prediction.jpg) | ![Multiclass WQI](docs/screens/multiclass-wqi.jpg) | ![Model Performance](docs/screens/model-performance.jpg) |
+
+---
+
 ## Installation & Setup
 
 ```bash
@@ -119,7 +138,9 @@ pip install -r requirements-dev.txt
 python -m pytest tests -q
 ```
 
-The suite (90 tests) covers the split and preprocessing (no leakage), WQI formula, SHAP weights and initialisation, ANN/XGBoost/fusion, metrics, all three training scripts end to end, model save/load, that the saved models reproduce the reported metrics, the LSTM pipeline, and every Streamlit page (headless, with button clicks).
+The real-browser animation tests (`tests/test_design_e2e.py`) need Playwright and a Chromium (set `WQ_CHROMIUM` to its path); they are skipped otherwise.
+
+The suite (125 tests) covers the split and preprocessing (no leakage), WQI formula, SHAP weights and initialisation, ANN/XGBoost/fusion, metrics, all three training scripts end to end, model save/load, that the saved models reproduce the reported metrics, the LSTM pipeline, and every Streamlit page (headless, with button clicks).
 
 ## App pages
 
@@ -139,7 +160,8 @@ config.py                 settings and hyperparameters (paper Table VIII)
 src/                      data.py, wqi.py, shap_init.py, nn_models.py, hybrid.py, metrics.py,
                           pipeline.py, timeseries.py, pipeline_ts.py, realdata.py, artifacts.py, ui.py
 model/                    train_model.py, train_multiclass.py, train_lstm.py, artifacts/ (trained files)
-app/                      app.py and pages/
+app/                      app.py and pages/ (styled by src/theme.py, config in .streamlit/config.toml)
+docs/screens/             screenshots used in this README
 tests/                    pytest suite
 data/                     water_potability.csv (Kaggle), brisbane_river_water_quality.csv (real time series)
 notebooks/eda.ipynb       EDA notebook
