@@ -1,5 +1,6 @@
-"""Streamlit pages: run each page headlessly, click the buttons, check the output."""
+"""Website pages (top navigation) and dashboard tools, run headless with button clicks."""
 import os
+import re
 
 import pytest
 from streamlit.testing.v1 import AppTest
@@ -13,43 +14,114 @@ pytestmark = pytest.mark.skipif(not (BinaryBundle.exists() and MulticlassBundle.
                                 reason="trained files missing: run the model/train_*.py scripts")
 
 
-def page(name):
-    return AppTest.from_file(os.path.join(ROOT, name), default_timeout=TIMEOUT).run()
-
-
-@pytest.mark.parametrize("name", ["app/app.py", "app/pages/1_EDA.py", "app/pages/2_Prediction.py",
-                                  "app/pages/3_Multiclass_WQI.py", "app/pages/4_Time_Series.py",
-                                  "app/pages/5_Model_Performance.py"])
-def test_page_renders_without_error(name):
-    at = page(name)
+def site(view=None, **state):
+    at = AppTest.from_file(os.path.join(ROOT, "app", "app.py"), default_timeout=TIMEOUT)
+    for k, v in state.items():
+        at.session_state[k] = v
+    at.run()
+    if view:
+        at.switch_page(f"views/{view}.py").run()
     assert not at.exception, [e.value for e in at.exception]
+    return at
 
 
-def test_home_shows_metrics():
-    at = page("app/app.py")
-    assert len(at.metric) == 3
-    assert "%" in at.metric[0].value
+def tool(name, **state):
+    """Dashboard with the given tool selected."""
+    return site("dashboard", dash_tool=name, **state)
 
 
-def test_eda_feature_selector_changes_chart():
-    at = page("app/pages/1_EDA.py")
-    assert len(at.metric) == 3 and at.metric[0].value == "3276" and at.metric[2].value == "1434"
-    at.selectbox[0].select("Sulfate").run()
+def test_top_navigation_has_home_about_contact_dashboard():
+    src = open(os.path.join(ROOT, "app", "app.py")).read()
+    assert re.findall(r'st\.Page\("views/(\w+)\.py", title="(\w+)"', src) == [
+        ("home", "Home"), ("about", "About"), ("contact", "Contact"), ("dashboard", "Dashboard")]
+    assert 'position="top"' in src
+
+
+@pytest.mark.parametrize("view", ["home", "about", "contact", "dashboard"])
+def test_every_page_renders(view):
+    site(view)
+
+
+def test_home_shows_hero_metrics_and_dashboard_button():
+    at = site()
+    assert len(at.metric) == 3 and "%" in at.metric[0].value
+    assert any(b.label == "Open dashboard →" for b in at.button)
+
+
+def test_home_open_dashboard_button_goes_to_dashboard():
+    at = site()
+    next(b for b in at.button if b.key == "home_cta_dash").click().run()
+    assert not at.exception and len(at.metric) == 4          # the dashboard KPI row
+
+
+def test_home_tool_card_opens_that_tool_in_the_dashboard():
+    at = site()
+    next(b for b in at.button if b.key == "home_open_Predict").click().run()
+    assert not at.exception
+    assert len(at.sidebar.slider) == 9                       # the Predict tool is showing
+
+
+def page_html(at):
+    return " ".join(h.value for h in at.get("html"))
+
+
+def test_home_about_button_goes_to_about():
+    at = site()
+    assert "Know your water quality, and why" in page_html(at)
+    next(b for b in at.button if b.key == "home_cta_about").click().run()
+    assert not at.exception
+    assert "Hybrid machine learning for water quality" in page_html(at)
+    assert "Know your water quality, and why" not in page_html(at)
+
+
+def test_dashboard_overview_and_tool_switch_state():
+    at = site("dashboard")
+    assert len(at.metric) == 4 and at.session_state["dash_tool"] == "Overview"
+    assert len(at.sidebar.slider) == 0                      # no input sidebar on the overview
+
+
+def test_about_page_states_the_limitations_and_sources():
+    html = page_html(site("about"))
+    for expected in ("Limitations, stated plainly", "86.9%", "67.7%", "10.1109/JSTARS.2026.3654017",
+                     "Brisbane River buoy", "Kaggle Water Potability"):
+        assert expected in html, expected
+
+
+def test_contact_form_validation_and_links():
+    at = site("contact")
+    at.button[0].click().run()                               # empty form
+    assert len(at.error) == 3
+    at.text_input(key="contact_name").set_value("Asha")
+    at.text_input(key="contact_email").set_value("not-an-email")
+    at.text_area(key="contact_message").set_value("short")
+    at.button[0].click().run()
+    assert {e.value for e in at.error} == {"Please enter a valid email address.",
+                                           "Please write a message of at least 10 characters."}
+    at.text_input(key="contact_email").set_value("asha@example.com")
+    at.text_area(key="contact_message").set_value("Hello, I have a question about the model.")
+    at.button[0].click().run()
+    assert not at.exception and not at.error and any("ready" in s.value for s in at.success)
+
+
+def test_explore_tool():
+    at = tool("Explore data")
+    assert len(at.metric) == 4 + 3 and at.metric[4].value == "3276" and at.metric[6].value == "1434"
+    at.selectbox(key="eda_feature").select("Sulfate").run()
     assert not at.exception
 
 
-def test_prediction_page_predicts_and_explains():
-    at = page("app/pages/2_Prediction.py")
+def test_prediction_tool_predicts_and_explains():
+    at = tool("Predict")
     assert len(at.sidebar.slider) == 9
-    assert not at.success and not at.error            # nothing before the click
+    assert not at.success and not at.error
     at.button[0].click().run()
     assert not at.exception
-    assert len(at.success) + len(at.error) == 1       # exactly one verdict
+    assert len(at.success) + len(at.error) == 1
     assert any("Model Confidence" in i.value for i in at.info)
 
 
 def test_prediction_changes_with_inputs():
-    at = page("app/pages/2_Prediction.py")
+    at = tool("Predict")
     at.button[0].click().run()
     first = [i.value for i in at.info if "Model Confidence" in i.value][0]
     for s in at.sidebar.slider:
@@ -62,8 +134,8 @@ def test_prediction_changes_with_inputs():
     assert not at.exception and first != second
 
 
-def test_prediction_page_wqi_task_switch():
-    at = page("app/pages/2_Prediction.py")
+def test_prediction_tool_wqi_task_switch():
+    at = tool("Predict")
     at.sidebar.radio[0].set_value("WQI-based good / poor").run()
     assert not at.exception and any("formula" in c.value for c in at.caption)
     at.button[0].click().run()
@@ -73,10 +145,10 @@ def test_prediction_page_wqi_task_switch():
     assert any("WQI by formula" in m.value for m in at.markdown)
 
 
-def test_multiclass_page_formula_and_model():
-    at = page("app/pages/3_Multiclass_WQI.py")
-    assert len(at.sidebar.slider) == 9 and len(at.metric) == 1
-    wqi_default = float(at.metric[0].value)
+def test_wqi_levels_tool_formula_and_model():
+    at = tool("WQI levels")
+    assert len(at.sidebar.slider) == 9
+    wqi_default = float(at.metric[4].value)
     at.button[0].click().run()
     assert not at.exception
     assert any(s.value.startswith("Predicted level:") for s in at.success)
@@ -84,17 +156,17 @@ def test_multiclass_page_formula_and_model():
         if s.label.startswith("Sulfate"):
             s.set_value(480.0)
     at.run()
-    assert float(at.metric[0].value) > wqi_default    # more sulfate -> worse (higher) WQI
+    assert float(at.metric[4].value) > wqi_default          # more sulfate -> worse (higher) WQI
 
 
-def test_time_series_page_shows_real_data_notice_and_metrics():
-    at = page("app/pages/4_Time_Series.py")
-    assert not at.warning                                    # no "simulated" warning for real data
+def test_forecast_tool_shows_real_data_notice_and_metrics():
+    at = tool("Forecast")
+    assert not at.warning
     assert any("real" in i.value.lower() and "Brisbane" in i.value for i in at.info)
-    assert len(at.metric) == 3
+    assert len(at.metric) == 4 + 3
 
 
-def test_performance_page_tables():
-    at = page("app/pages/5_Model_Performance.py")
+def test_performance_tool_tables():
+    at = tool("Performance")
     assert len(at.tabs) == 5 and len(at.dataframe) >= 5
     assert any("WQI-based good / poor" in h.value for h in at.subheader)

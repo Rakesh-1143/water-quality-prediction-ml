@@ -1,4 +1,8 @@
 """Shared Streamlit helpers (sliders, cached model loading, SHAP bar chart)."""
+import glob
+import os
+import shutil
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
@@ -64,6 +68,20 @@ def require(obj, script):
         st.error(f"Trained files not found. Please run `python model/{script}` first.")
         st.stop()
     return obj
+
+
+def remove_stale_pages_dir(app_dir):
+    """Delete a leftover `pages/` folder that holds no .py files (e.g. only __pycache__).
+
+    Such a folder, left over from the old multipage layout, makes Streamlit mix its legacy page
+    discovery with `st.navigation` and resets widget state (like the theme) on every rerun.
+    Returns True if a folder was removed.
+    """
+    pages = os.path.join(app_dir, "pages")
+    if os.path.isdir(pages) and not glob.glob(os.path.join(pages, "**", "*.py"), recursive=True):
+        shutil.rmtree(pages, ignore_errors=True)
+        return True
+    return False
 
 
 def shap_bar(values, title="Feature contribution (SHAP)"):

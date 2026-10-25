@@ -41,13 +41,23 @@ html,body,.stApp,[class*="st-"],button,input,textarea{font-family:'Plus Jakarta 
 @keyframes wq-float-a{to{transform:translate3d(9vw,7vw,0) scale(1.15)}}
 @keyframes wq-float-b{to{transform:translate3d(-8vw,-6vw,0) scale(1.2)}}
 [data-testid="stHeader"]{background:transparent}
-[data-testid="stMainBlockContainer"]{position:relative;z-index:1;padding-top:2.2rem;max-width:1180px;animation:wq-rise .8s var(--wq-ease) both}
+[data-testid="stMainBlockContainer"]{position:relative;z-index:1;padding-top:5.2rem;max-width:1180px;animation:wq-rise .8s var(--wq-ease) both}
 @keyframes wq-rise{from{opacity:0;transform:translate3d(0,22px,0)}to{opacity:1;transform:none}}
 h1,h2,h3{color:var(--wq-ink);letter-spacing:-.02em;font-weight:800}
 [data-testid="stMainBlockContainer"] h3{position:relative;padding-bottom:.35rem}
 [data-testid="stMainBlockContainer"] h3::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:46px;border-radius:3px;
 background:linear-gradient(90deg,var(--wq-primary),var(--wq-primary2));transition:width .6s var(--wq-ease)}
 .wq-in h3::after,[data-testid="stMainBlockContainer"] h3:hover::after{width:90px}
+/* top navigation bar */
+[data-testid="stHeader"]{height:66px;background:rgba(255,255,255,.72);backdrop-filter:blur(18px) saturate(1.4);border-bottom:1px solid var(--wq-border);box-shadow:0 10px 34px rgba(11,42,59,.08)}
+[data-testid="stAppDeployButton"],[data-testid="stMainMenu"]{display:none}
+[data-testid="stHeaderLogo"]{height:36px;margin-right:.6rem;transition:transform .35s var(--wq-ease)}[data-testid="stHeaderLogo"]:hover{transform:scale(1.04)}
+[data-testid="stTopNav"]{gap:.25rem}
+[data-testid="stTopNavLink"]{position:relative;border-radius:99px;padding:.5rem 1.15rem;font-weight:700;color:var(--wq-ink);transition:transform .25s var(--wq-ease),background .25s,box-shadow .25s}
+[data-testid="stTopNavLink"] p{font-weight:700;color:inherit}
+[data-testid="stTopNavLink"]:hover{background:rgba(255,255,255,.9);transform:translateY(-2px);box-shadow:0 8px 18px rgba(11,42,59,.10)}
+[data-testid="stTopNavLink"][aria-current="page"]{color:#fff;background:linear-gradient(120deg,var(--wq-primary),var(--wq-primary2));box-shadow:0 10px 22px rgba(2,132,199,.32)}
+[data-testid="stTopNavLink"][aria-current="page"] p{color:#fff}
 /* sidebar */
 [data-testid="stSidebar"]{background:linear-gradient(190deg,rgba(255,255,255,.78),rgba(255,255,255,.52));backdrop-filter:blur(18px);
 border-right:1px solid var(--wq-border);box-shadow:8px 0 30px rgba(11,42,59,.06)}
@@ -104,6 +114,23 @@ background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);backdrop-f
 .wq-hero p{color:rgba(255,255,255,.92);font-size:1.02rem;max-width:560px;margin:0;animation:wq-rise .9s var(--wq-ease) .35s both}
 .wq-stats{display:flex;gap:2rem;margin-top:1.3rem;animation:wq-rise .9s var(--wq-ease) .5s both}
 .wq-stats b{display:block;font-size:1.7rem;font-weight:800;line-height:1}.wq-stats span{font-size:.72rem;opacity:.85;text-transform:uppercase;letter-spacing:.08em}
+/* landing page parts */
+.wq-eyebrow{display:inline-block;font-size:.74rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--wq-primary);margin-bottom:.2rem}
+.wq-sec h2{margin:0 0 .3rem;font-size:clamp(1.5rem,2.6vw,2.15rem)}.wq-sec p{margin:0;color:var(--wq-muted);max-width:680px}
+.wq-sec{margin:1.6rem 0 .6rem}
+.wq-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin:1.2rem 0}
+.wq-strip div{text-align:center;padding:1.1rem .6rem}.wq-strip b{display:block;font-size:2rem;font-weight:800;background:linear-gradient(90deg,var(--wq-primary),var(--wq-primary2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.wq-strip span{font-size:.78rem;color:var(--wq-muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+.wq-cta{position:relative;overflow:hidden;border-radius:28px;padding:2.4rem 2rem;text-align:center;color:#fff;margin:1.6rem 0 1rem;
+background:linear-gradient(120deg,__primary__,__primary2__);box-shadow:0 24px 54px rgba(11,42,59,.22)}
+.wq-cta::before{content:"";position:absolute;width:420px;height:420px;border-radius:50%;right:-120px;top:-180px;background:rgba(255,255,255,.16);animation:wq-float-a 14s ease-in-out infinite alternate}
+.wq-cta h2{color:#fff;margin:0 0 .4rem;position:relative}.wq-cta p{margin:0;opacity:.92;position:relative}
+.wq-chips{display:flex;flex-wrap:wrap;gap:.55rem;margin:.4rem 0 1rem}.wq-chips span{padding:.42rem .9rem;border-radius:99px;font-size:.84rem;font-weight:700;color:var(--wq-ink);
+background:var(--wq-glass);border:1px solid var(--wq-border);box-shadow:0 6px 14px rgba(11,42,59,.07);transition:transform .25s var(--wq-ease),box-shadow .25s}
+.wq-chips span:hover{transform:translateY(-4px) scale(1.04);box-shadow:0 14px 24px rgba(11,42,59,.14)}
+.wq-footer{margin:2.2rem 0 .4rem;padding:1.4rem 1rem 0;border-top:1px solid rgba(11,42,59,.10);display:flex;flex-wrap:wrap;gap:1rem;justify-content:space-between;align-items:center;color:var(--wq-muted);font-size:.86rem}
+.wq-footer a{color:var(--wq-primary);font-weight:700;text-decoration:none;margin-left:1rem;transition:opacity .2s}.wq-footer a:hover{opacity:.7}
+.wq-note{border-left:4px solid var(--wq-accent);padding:.8rem 1rem;border-radius:0 14px 14px 0;background:var(--wq-glass);color:var(--wq-ink);font-size:.92rem;margin:.5rem 0}
 /* feature cards + timeline + gauge + ladder + bars */
 .wq-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:1rem;margin:.4rem 0 1rem;perspective:1000px}
 .wq-card h4{margin:.5rem 0 .25rem;font-size:1.05rem;font-weight:800;color:var(--wq-ink)}.wq-card p{margin:0;color:var(--wq-muted);font-size:.9rem;line-height:1.5}
@@ -133,6 +160,7 @@ background:var(--wq-glass);border:1px solid var(--wq-border);color:var(--wq-mute
 background:linear-gradient(90deg,var(--wq-primary),var(--wq-primary2));transition:transform 1.3s var(--wq-ease) var(--d,0s)}.wq-bar.top i{background:linear-gradient(90deg,var(--wq-accent),#fbbf24)}
 .wq-js .wq-bar i{transform:scaleX(0)}.wq-js .wq-in .wq-bar i{transform:scaleX(1)}.wq-bar b{text-align:right}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}.wq-js .wq-pre{opacity:1;transform:none;filter:none}}
+[data-testid="stPopover"] button{border-radius:99px;font-weight:700}
 @media (max-width:760px){.wq-hero-content{padding:0 1.2rem}.wq-bar{grid-template-columns:100px 1fr 46px}.wq-ladder{flex-wrap:wrap}}
 """
 
@@ -153,13 +181,17 @@ _GLOBAL_JS = r"""
    setTimeout(()=>{el.style.transitionDelay='';batch=0;},900);}});},{root:s||null,threshold:.08,rootMargin:'0px 0px -6% 0px'});};
  const scan=()=>{bind();if(!io)mkIO();
   d.querySelectorAll('[data-testid="stElementContainer"],[data-testid="stHorizontalBlock"] > [data-testid="stColumn"]').forEach(el=>{
-   if(seen.has(el)||el.querySelector('.wq-hero'))return;seen.add(el);
+   if(seen.has(el)||el.querySelector('.wq-hero'))return;
+   const root=scroller();if(!root||!root.contains(el)||el.closest('[data-testid="stPopoverBody"],[data-baseweb="popover"],[role="dialog"]'))return;seen.add(el);
    if(reduce){el.classList.add('wq-in');return;}
    const r=el.getBoundingClientRect(),s=scroller(),vh=s?s.clientHeight:innerHeight;
    if(r.top<vh*0.9&&r.bottom>0&&el.closest('[data-testid="stSidebar"]')){return;}
    if(el.closest('[data-testid="stSidebar"]'))return;
    el.classList.add('wq-pre');io.observe(el);});
-  onScroll();};
+  counts();onScroll();};
+ const cio=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const el=e.target;cio.unobserve(el);const to=parseFloat(el.dataset.to),dec=+(el.dataset.dec||0),pre=el.dataset.pre||'',suf=el.dataset.suf||'',t0=performance.now();
+  const step=t=>{const k=Math.min(1,(t-t0)/1500),v=to*(1-Math.pow(1-k,3));el.textContent=pre+v.toLocaleString(undefined,{minimumFractionDigits:dec,maximumFractionDigits:dec})+suf;if(k < 1)requestAnimationFrame(step);};requestAnimationFrame(step);}}),{root:null,threshold:.5});
+ const counts=()=>d.querySelectorAll('.wq-count:not([data-w])').forEach(el=>{el.dataset.w=1;if(reduce)return;el.textContent=(el.dataset.pre||'')+'0'+(el.dataset.suf||'');cio.observe(el);});
  window.__wq={scan};
  new MutationObserver(()=>{clearTimeout(window.__wqT);window.__wqT=setTimeout(scan,60);}).observe(d.body,{childList:true,subtree:true});
  scan();setTimeout(scan,400);
@@ -259,16 +291,20 @@ def colors():
     return p["primary"], p["warm"], p["primary2"]
 
 
-def apply(brand_title="Water Quality ML", brand_sub="SHAP-ANN · XGBoost · LSTM"):
-    """Inject the design system. Call right after `st.set_page_config` on every page."""
-    st.sidebar.markdown(f'<div class="wq-brand"><i>💧</i><div><b>{html.escape(brand_title)}</b>'
-                        f'<span>{html.escape(brand_sub)}</span></div></div>', unsafe_allow_html=True)
+def picker():
+    """Compact theme switcher (popover) shown at the top right of every page."""
     if "design_theme" not in st.session_state and "_wq_theme" in st.session_state:
         st.session_state["design_theme"] = st.session_state["_wq_theme"]   # widget state is reset on page change
-    st.sidebar.segmented_control("Design theme", list(PALETTES), default=DEFAULT_THEME,
-                                 key="design_theme", selection_mode="single",
-                                 help="Switch between three visual designs (palette + 3D scene).")
+    _, right = st.columns([6, 1.5])
+    with right.popover("🎨 Theme", use_container_width=True):
+        st.segmented_control("Design theme", list(PALETTES), default=DEFAULT_THEME, key="design_theme",
+                             selection_mode="single", help="Four visual designs: palette + 3D hero scene.")
     st.session_state["_wq_theme"] = current()
+
+
+def apply():
+    """Inject the design system. Call once per run from the app entry point, before the page runs."""
+    picker()
     p = PALETTES[current()]
     st.markdown(f"<style>{_css(p)}</style>", unsafe_allow_html=True)
     st.html(f"<script>{safe_js(_GLOBAL_JS)}</script>", unsafe_allow_javascript=True)
@@ -295,6 +331,12 @@ def feature_cards(items):
     cards = "".join(f'<div class="wq-card"><div class="wq-ico">{html.escape(i)}</div><h4>{html.escape(t)}</h4>'
                     f'<p>{html.escape(x)}</p></div>' for i, t, x in items)
     st.html(f'<div class="wq-grid">{cards}</div>')
+
+
+def card(icon, title, text, min_height=0):
+    """One 3D-tilt card (use inside a Streamlit column); `min_height` (px) equalises cards in a row."""
+    st.html(f'<div class="wq-card" style="min-height:{int(min_height)}px"><div class="wq-ico">{html.escape(icon)}</div><h4>{html.escape(title)}</h4>'
+            f'<p>{html.escape(text)}</p></div>')
 
 
 def timeline(steps):
@@ -325,3 +367,42 @@ def leaderboard(scores, fmt="{:.1%}"):
         f'<em><i style="--w:{max(0.0, min(1.0, v)) * 100:.1f}%;--d:{n * .12:.2f}s"></i></em><b>{fmt.format(v)}</b></div>'
         for n, (k, v) in enumerate(scores.items()))
     st.html(f'<div class="wq-bars">{rows}</div>')
+
+
+def section(eyebrow, title, text=""):
+    """Section heading with a small eyebrow label."""
+    body = f"<p>{html.escape(text)}</p>" if text else ""
+    st.html(f'<div class="wq-sec"><span class="wq-eyebrow">{html.escape(eyebrow)}</span>'
+            f'<h2>{html.escape(title)}</h2>{body}</div>')
+
+
+def stat_strip(items):
+    """Row of count-up numbers. items = [(value, label, dict(dec=, pre=, suf=)), ...]."""
+    cells = ""
+    for value, label, fmt in items:
+        dec, pre, suf = fmt.get("dec", 0), fmt.get("pre", ""), fmt.get("suf", "")
+        shown = f"{pre}{value:,.{dec}f}{suf}"
+        cells += (f'<div class="wq-card"><b class="wq-count" data-to="{value}" data-dec="{dec}" '
+                  f'data-pre="{html.escape(pre)}" data-suf="{html.escape(suf)}">{html.escape(shown)}</b>'
+                  f'<span>{html.escape(label)}</span></div>')
+    st.html(f'<div class="wq-strip">{cells}</div>')
+
+
+def cta(title, text):
+    """Full-width call-to-action banner."""
+    st.html(f'<div class="wq-cta"><h2>{html.escape(title)}</h2><p>{html.escape(text)}</p></div>')
+
+
+def chips(labels):
+    st.html('<div class="wq-chips">' + "".join(f"<span>{html.escape(x)}</span>" for x in labels) + "</div>")
+
+
+def note(text):
+    st.html(f'<div class="wq-note">{html.escape(text)}</div>')
+
+
+def footer(app_name, github_url):
+    st.html(f'<div class="wq-footer"><span>© {html.escape(app_name)} · SHAP-guided hybrid ML for water quality</span>'
+            f'<span><a href="{html.escape(github_url)}" target="_blank" rel="noopener">GitHub</a>'
+            f'<a href="https://www.kaggle.com/datasets/adityakadiwal/water-potability" target="_blank" rel="noopener">Dataset</a>'
+            f'<a href="https://doi.org/10.1109/JSTARS.2026.3654017" target="_blank" rel="noopener">Research paper</a></span></div>')

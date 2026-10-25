@@ -77,7 +77,9 @@ def test_scroll_reveals_elements_and_moves_progress_bar(page):
     page.evaluate("document.getElementById('wq-progress').style.width='0%'")
     scroll(page, 1500)
     assert page.evaluate("document.querySelectorAll('.wq-in').length") > 5
-    assert float(page.evaluate("parseFloat(document.getElementById('wq-progress').style.width)")) > 50
+    assert float(page.evaluate("parseFloat(document.getElementById('wq-progress').style.width)")) > 30
+    scroll(page, 100000)                                                           # bottom of the page
+    assert float(page.evaluate("parseFloat(document.getElementById('wq-progress').style.width)")) > 95
     assert page.evaluate("document.querySelectorAll('.wq-pre').length") == 0      # nothing left hidden
 
 
@@ -93,11 +95,25 @@ def test_hover_applies_3d_tilt_to_cards(page):
 
 def test_theme_switch_changes_palette_and_persists_across_pages(page):
     scroll(page, 0)
+    page.get_by_role("button", name="Theme").first.click()                         # theme popover
     page.get_by_text("Aurora", exact=True).first.click()
     page.wait_for_timeout(3000)
     assert page.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--wq-primary')").strip() == "#6366f1"
-    page.get_by_role("link", name="EDA").first.click()
-    page.wait_for_selector("text=Dataset Overview", timeout=60000)
+    page.locator('[data-testid="stTopNavLink"]', has_text="About").click()
+    page.wait_for_selector("text=Hybrid machine learning for water quality", timeout=60000)
     page.wait_for_timeout(2500)
     assert page.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--wq-primary')").strip() == "#6366f1"
+    assert page.errors == []
+
+
+def test_top_navigation_links_switch_pages(page):
+    names = page.evaluate("[...document.querySelectorAll('[data-testid=stTopNavLink]')].map(a=>a.textContent.trim().replace(/^\\W+/,''))")
+    assert names == ["Home", "About", "Contact", "Dashboard"]
+    page.locator('[data-testid="stTopNavLink"]', has_text="Dashboard").click()
+    page.wait_for_selector("text=Water quality dashboard", timeout=60000)
+    assert page.url.rstrip("/").endswith("/dashboard")
+    assert page.evaluate("document.querySelector('[data-testid=stTopNavLink][aria-current=page]').textContent").strip().endswith("Dashboard")
+    page.locator('[data-testid="stTopNavLink"]', has_text="Contact").click()
+    page.wait_for_selector("text=talk about water quality", timeout=60000)
+    assert page.url.rstrip("/").endswith("/contact")
     assert page.errors == []

@@ -12,8 +12,7 @@ from src import theme
 from src.artifacts import BinaryBundle
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-PAGES = ["app/app.py", "app/pages/1_EDA.py", "app/pages/2_Prediction.py", "app/pages/3_Multiclass_WQI.py",
-         "app/pages/4_Time_Series.py", "app/pages/5_Model_Performance.py"]
+PAGES = ["home", "about", "contact", "dashboard"]
 
 
 @pytest.fixture
@@ -100,9 +99,23 @@ def test_matplotlib_follows_palette():
 @pytest.mark.parametrize("page", PAGES)
 @pytest.mark.parametrize("name", list(theme.PALETTES))
 def test_every_page_renders_in_every_theme(page, name):
-    at = AppTest.from_file(os.path.join(ROOT, page), default_timeout=120)
+    at = AppTest.from_file(os.path.join(ROOT, "app", "app.py"), default_timeout=120)
     at.session_state["design_theme"] = name
     at.run()
+    at.switch_page(f"views/{page}.py").run()
     assert not at.exception, [e.value for e in at.exception]
     css = " ".join(m.value for m in at.markdown if "--wq-primary" in m.value)
     assert theme.PALETTES[name]["primary"] in css                 # the chosen palette is injected
+
+
+def test_remove_stale_pages_dir_only_removes_folders_without_python_files(tmp_path):
+    from src.ui import remove_stale_pages_dir
+    assert remove_stale_pages_dir(str(tmp_path)) is False                    # nothing there
+    stale = tmp_path / "pages" / "__pycache__"
+    stale.mkdir(parents=True)
+    (stale / "old.cpython-313.pyc").write_bytes(b"x")
+    assert remove_stale_pages_dir(str(tmp_path)) is True and not (tmp_path / "pages").exists()
+    real = tmp_path / "pages"
+    real.mkdir()
+    (real / "1_Page.py").write_text("print(1)")
+    assert remove_stale_pages_dir(str(tmp_path)) is False and (real / "1_Page.py").exists()   # real pages are kept
