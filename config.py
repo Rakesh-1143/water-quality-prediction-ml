@@ -42,3 +42,9 @@ BRISBANE_WQI_PARAMS = ["ph", "dissolved_oxygen", "turbidity", "chlorophyll"]
 BRISBANE_INPUTS = BRISBANE_WQI_PARAMS + ["temperature", "specific_conductance"]
 TS_WINDOWS = {"D": 7, "h": 24}
 TS_DEFAULT_FREQ = "h"  # hourly: 6,229 steps (daily has only 302, too few for an LSTM)  # look-back window per resample frequency
+
+
+# Website / contact details shown on the About and Contact pages
+APP_NAME = "Water Quality ML"
+GITHUB_URL = "https://github.com/Rakesh-1143/water-quality-prediction-ml"
+CONTACT_EMAIL = ""  # set your address to enable the "Send by email" button on the Contact page

@@ -94,6 +94,33 @@ The sensor record has **42 gaps** (outages, one of about a month). Windows are o
 
 ---
 
+## Design
+
+The app has its own design system (`src/theme.py`, plain CSS + vanilla JS, no external assets, respects `prefers-reduced-motion`):
+
+- **Four visual themes** you can switch in the sidebar (kept across pages): **Ocean** (animated 3D wave surface), **Blue** (3D gyroscope of rotating rings), **Lagoon** (rotating 3D droplet sphere with orbit rings), **Aurora** (3D double helix). Each has its own palette, hero scene, charts and accent colours.
+- **3D**: canvas scenes with a perspective projection that react to the mouse and to scrolling; cards tilt in 3D and follow the pointer with a light glare; the predicted WQI level lifts out of a 3D ladder.
+- **Scroll animations**: a scroll-progress bar, staggered reveal of every block as it enters the view, an animated pipeline timeline, bars that grow when scrolled into view, and a ring gauge that fills.
+- **Smooth motion**: page-entry animation, floating background blobs, glass cards, button shine and lift, smooth scrolling.
+
+| Home (Ocean) | Home (Blue) |
+|---|---|
+| ![Home Ocean](docs/screens/home-ocean.jpg) | ![Home Blue](docs/screens/home-blue.jpg) |
+
+| Home (Lagoon) | Home (Aurora) |
+|---|---|
+| ![Home Lagoon](docs/screens/home-lagoon.jpg) | ![Home Aurora](docs/screens/home-aurora.jpg) |
+
+| About | Contact |
+|---|---|
+| ![About](docs/screens/about.jpg) | ![Contact](docs/screens/contact.jpg) |
+
+| Dashboard | Dashboard: Predict | Dashboard: Performance |
+|---|---|---|
+| ![Dashboard](docs/screens/dashboard.jpg) | ![Predict](docs/screens/dashboard-predict.jpg) | ![Performance](docs/screens/dashboard-performance.jpg) |
+
+---
+
 ## Installation & Setup
 
 ```bash
@@ -119,18 +146,22 @@ pip install -r requirements-dev.txt
 python -m pytest tests -q
 ```
 
-The suite (90 tests) covers the split and preprocessing (no leakage), WQI formula, SHAP weights and initialisation, ANN/XGBoost/fusion, metrics, all three training scripts end to end, model save/load, that the saved models reproduce the reported metrics, the LSTM pipeline, and every Streamlit page (headless, with button clicks).
+The real-browser animation tests (`tests/test_design_e2e.py`) need Playwright and a Chromium (set `WQ_CHROMIUM` to its path); they are skipped otherwise.
 
-## App pages
+The suite (132 tests) covers the split and preprocessing (no leakage), WQI formula, SHAP weights and initialisation, ANN/XGBoost/fusion, metrics, all three training scripts end to end, model save/load, that the saved models reproduce the reported metrics, the LSTM pipeline, and every Streamlit page (headless, with button clicks).
 
-| Page | What it does |
+## Website
+
+A top navigation bar switches between four pages (`streamlit run app/app.py`):
+
+| Page | What it has |
 |---|---|
-| Home | Headline metrics |
-| EDA | Overview, class balance, missing values, distributions, IQR outliers, correlations |
-| Prediction | 9 sliders -> potable / not potable (or WQI good / poor), confidence, NN and XGBoost outputs, SHAP explanation |
-| Multiclass WQI | WQI value and level by formula, model-predicted level, class probabilities, SHAP |
-| Time Series | LSTM test-period plot vs persistence, and next-hour forecast from an uploaded CSV |
-| Model Performance | Comparison, ablation, ROC, loss curve, SHAP ranking, stability |
+| Home | 3D hero, count-up numbers, five tool cards that open the dashboard on that tool, pipeline timeline, results at a glance, tech stack |
+| About | The project, the IEEE paper and thesis it builds on, the two datasets, and the limitations stated plainly |
+| Contact | GitHub links, a message form with validation that hands the message to your email app or a pre-filled GitHub issue (nothing is stored on the server). Set `CONTACT_EMAIL` in `config.py` to enable the email button |
+| Dashboard | Four headline metrics and a tool switcher: **Overview** (model comparison, SHAP, ROC, forecast), **Explore data**, **Predict** (potability or WQI good/poor, with SHAP), **WQI levels**, **Forecast**, **Performance** |
+
+A "Theme" button at the top right switches between the four designs.
 
 ## Project Structure
 
@@ -139,11 +170,17 @@ config.py                 settings and hyperparameters (paper Table VIII)
 src/                      data.py, wqi.py, shap_init.py, nn_models.py, hybrid.py, metrics.py,
                           pipeline.py, timeseries.py, pipeline_ts.py, realdata.py, artifacts.py, ui.py
 model/                    train_model.py, train_multiclass.py, train_lstm.py, artifacts/ (trained files)
-app/                      app.py and pages/
+app/                      app.py (navigation + theme), views/ (home, about, contact, dashboard), views/tools/ (dashboard tools), assets/logo.svg
+docs/screens/             screenshots used in this README
 tests/                    pytest suite
 data/                     water_potability.csv (Kaggle), brisbane_river_water_quality.csv (real time series)
 notebooks/eda.ipynb       EDA notebook
 ```
+
+## Troubleshooting
+
+- **The theme does not switch after upgrading from the old layout:** an old `app/pages/` folder (even one holding only `__pycache__`) confuses Streamlit's navigation. The app deletes it on start; reload the page once.
+- **`streamlit run` is slow to start:** TensorFlow loads on the first prediction page.
 
 ## Dataset
 

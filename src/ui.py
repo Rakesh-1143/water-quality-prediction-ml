@@ -1,10 +1,15 @@
 """Shared Streamlit helpers (sliders, cached model loading, SHAP bar chart)."""
+import glob
+import os
+import shutil
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 
 from config import FEATURES
 from src.artifacts import BinaryBundle, MulticlassBundle, WqiBinaryBundle, load_results
+from src import theme
 from src.pipeline_ts import load_lstm
 
 # label, min, max, default
@@ -65,11 +70,26 @@ def require(obj, script):
     return obj
 
 
+def remove_stale_pages_dir(app_dir):
+    """Delete a leftover `pages/` folder that holds no .py files (e.g. only __pycache__).
+
+    Such a folder, left over from the old multipage layout, makes Streamlit mix its legacy page
+    discovery with `st.navigation` and resets widget state (like the theme) on every rerun.
+    Returns True if a folder was removed.
+    """
+    pages = os.path.join(app_dir, "pages")
+    if os.path.isdir(pages) and not glob.glob(os.path.join(pages, "**", "*.py"), recursive=True):
+        shutil.rmtree(pages, ignore_errors=True)
+        return True
+    return False
+
+
 def shap_bar(values, title="Feature contribution (SHAP)"):
     """Horizontal bar chart of per-feature SHAP values for one sample."""
     s = pd.Series(values, index=FEATURES).sort_values()
     fig, ax = plt.subplots(figsize=(6, 3.5))
-    ax.barh(s.index, s.values, color=["#E85D24" if v < 0 else "#3B8BD4" for v in s.values])
+    pos, neg, _ = theme.colors()
+    ax.barh(s.index, s.values, color=[neg if v < 0 else pos for v in s.values])
     ax.axvline(0, color="grey", lw=0.8)
     ax.set_title(title)
     fig.tight_layout()
