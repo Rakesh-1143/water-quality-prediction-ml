@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from config import ARTIFACT_DIR, RANDOM_STATE
 from src.artifacts import save_results
+from src.data import load_dataset
 from src.pipeline import perturbation_test, run_binary_pipeline, run_sensitivity
 
 
@@ -26,12 +27,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", choices=["potability", "wqi"], default="potability",
                         help="potability = Kaggle label; wqi = WQI-derived good/poor label")
+    parser.add_argument("--data", default=None, help="CSV to train on (default: the Kaggle dataset)")
     parser.add_argument("--skip-sensitivity", action="store_true")
     parser.add_argument("--out-dir", default=ARTIFACT_DIR, help="where to save trained files")
     parser.add_argument("--epochs", type=int, default=None, help="override max epochs (quick runs)")
     args = parser.parse_args()
 
-    out = run_binary_pipeline(seed=RANDOM_STATE, epochs=args.epochs, task=args.task)
+    df = load_dataset(args.data) if args.data else None
+    out = run_binary_pipeline(df, seed=RANDOM_STATE, epochs=args.epochs, task=args.task)
     bundle, results = out["bundle"], out["results"]
     show("Model comparison (test set)", results["comparison"])
     show("Ablation (test set)", results["ablation"])
@@ -44,7 +47,7 @@ def main():
                                                 out["splits"].y_test.values, top3)
     print("Perturbation (+-10% on top-3 SHAP features):", results["perturbation"])
     if not args.skip_sensitivity:
-        results["sensitivity"] = run_sensitivity(epochs=args.epochs, task=args.task)
+        results["sensitivity"] = run_sensitivity(df, epochs=args.epochs, task=args.task)
         s = results["sensitivity"]
         print(f"5 random splits: accuracy {s['accuracy']['mean']:.3f} +- {s['accuracy']['std']:.3f}, "
               f"F1 {s['f1']['mean']:.3f} +- {s['f1']['std']:.3f}")

@@ -1,0 +1,23 @@
+{
+  "window": 24,
+  "cutoffs": [
+    175.9296138413284,
+    186.7970848806566,
+    197.6231511783293
+  ],
+  "simulated": true,
+  "profile": "potability",
+  "features": [
+    "ph",
+    "Hardness",
+    "Solids",
+    "Chloramines",
+    "Sulfate",
+    "Conductivity",
+    "Organic_carbon",
+    "Trihalomethanes",
+    "Turbidity"
+  ],
+  "freq": "h",
+  "dataset": "simulated"
+}

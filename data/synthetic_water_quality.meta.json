@@ -1,0 +1,9 @@
+{
+  "n": 5000,
+  "seed": 7,
+  "potable_rate": 0.39,
+  "label_noise": 0.1,
+  "measured_noise": 0.0986,
+  "max_possible_accuracy": 0.9014,
+  "note": "SYNTHETIC data for demonstration. Not real water measurements."
+}

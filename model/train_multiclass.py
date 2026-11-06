@@ -10,16 +10,19 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from config import ARTIFACT_DIR, RANDOM_STATE
 from src.artifacts import save_results
+from src.data import load_dataset
 from src.pipeline import run_multiclass_pipeline
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--out-dir", default=ARTIFACT_DIR, help="where to save trained files")
+    parser.add_argument("--data", default=None, help="CSV to train on (default: the Kaggle dataset)")
     parser.add_argument("--epochs", type=int, default=None)
     args = parser.parse_args()
 
-    out = run_multiclass_pipeline(seed=RANDOM_STATE, epochs=args.epochs)
+    df = load_dataset(args.data) if args.data else None
+    out = run_multiclass_pipeline(df, seed=RANDOM_STATE, epochs=args.epochs)
     r = out["results"]
     print("Class counts:", r["class_counts"], "| WQI cut-offs:", [round(c, 1) for c in r["cutoffs"]])
     for name in ("ann_shap_only", "xgb_only", "hybrid"):

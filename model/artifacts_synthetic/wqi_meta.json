@@ -1,0 +1,55 @@
+{
+  "seed": 42,
+  "cutoffs": [
+    174.62880677948255,
+    193.70494294560046,
+    213.7864615116623
+  ],
+  "classes": [
+    "Excellent",
+    "Good",
+    "Poor",
+    "Very Poor"
+  ],
+  "shap_importance": {
+    "ph": 1.3252379894256592,
+    "Hardness": 0.09358610212802887,
+    "Solids": 0.19119501113891602,
+    "Chloramines": 1.5632044076919556,
+    "Sulfate": 0.07797623425722122,
+    "Conductivity": 0.07772638648748398,
+    "Organic_carbon": 3.286400318145752,
+    "Trihalomethanes": 0.12105461210012436,
+    "Turbidity": 0.6339722871780396
+  },
+  "shap_weights": {
+    "ph": 0.17980657463129726,
+    "Hardness": 0.012697641171627146,
+    "Solids": 0.02594109157282779,
+    "Chloramines": 0.21209355016863835,
+    "Sulfate": 0.010579714508874688,
+    "Conductivity": 0.010545815486952449,
+    "Organic_carbon": 0.44589454029241093,
+    "Trihalomethanes": 0.016424533041402647,
+    "Turbidity": 0.08601653912596877
+  },
+  "alpha_scores": {
+    "0.3": 0.8986666666666666,
+    "0.4": 0.908,
+    "0.5": 0.912,
+    "0.6": 0.9213333333333333,
+    "0.7": 0.9186666666666666
+  },
+  "alpha": 0.6,
+  "features": [
+    "ph",
+    "Hardness",
+    "Solids",
+    "Chloramines",
+    "Sulfate",
+    "Conductivity",
+    "Organic_carbon",
+    "Trihalomethanes",
+    "Turbidity"
+  ]
+}

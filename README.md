@@ -94,6 +94,26 @@ The sensor record has **42 gaps** (outages, one of about a month). Windows are o
 
 ---
 
+## Synthetic demo dataset (not real data)
+
+For demonstration, `data/synthetic_water_quality.csv` was generated with `model/make_synthetic_dataset.py` (see `data/SYNTHETIC_DATA.md`). Its label is a documented rule of the 9 features plus 10% random label noise, so **the maximum possible accuracy is 90.1%**. Train on it with:
+
+```bash
+python model/train_model.py --data data/synthetic_water_quality.csv --out-dir model/artifacts_synthetic
+python model/train_multiclass.py --data data/synthetic_water_quality.csv --out-dir model/artifacts_synthetic
+python model/train_lstm.py --dataset simulated --out-dir model/artifacts_synthetic
+```
+
+Results as they came out (test set, no tuning toward any target):
+
+| Task | Synthetic data | Real data |
+|---|---|---|
+| Potability, hybrid accuracy | 0.853 (5 splits 0.853 ± 0.014) | 0.677 |
+| Multiclass WQI, hybrid accuracy | 0.911 | 0.907 |
+| LSTM next-step R² (persistence) | 0.839 (0.832) | 0.665 (0.639) |
+
+These numbers describe how well the models recover the generator's rule, not how well they predict real water quality. The synthetic files live in `model/artifacts_synthetic/` and are not used by the app.
+
 ## Design
 
 The app has its own design system (`src/theme.py`, plain CSS + vanilla JS, no external assets, respects `prefers-reduced-motion`):
@@ -137,6 +157,7 @@ The trained models are included in `model/artifacts/`. Retrain with:
 python model/train_model.py        # binary hybrid + baselines + ablation + sensitivity (~2-3 min)
 python model/train_multiclass.py   # 4-level WQI
 python model/train_lstm.py         # LSTM forecaster (real Brisbane data, hourly)
+python model/make_synthetic_dataset.py   # optional: synthetic demo dataset (see below)
 ```
 
 ## Run the tests
@@ -148,7 +169,7 @@ python -m pytest tests -q
 
 The real-browser animation tests (`tests/test_design_e2e.py`) need Playwright and a Chromium (set `WQ_CHROMIUM` to its path); they are skipped otherwise.
 
-The suite (132 tests) covers the split and preprocessing (no leakage), WQI formula, SHAP weights and initialisation, ANN/XGBoost/fusion, metrics, all three training scripts end to end, model save/load, that the saved models reproduce the reported metrics, the LSTM pipeline, and every Streamlit page (headless, with button clicks).
+The suite (143 tests) covers the split and preprocessing (no leakage), WQI formula, SHAP weights and initialisation, ANN/XGBoost/fusion, metrics, all three training scripts end to end, model save/load, that the saved models reproduce the reported metrics, the LSTM pipeline, and every Streamlit page (headless, with button clicks).
 
 ## Website
 
